@@ -1,0 +1,3 @@
+module org/sugarj/javascript/init/InitTrans
+imports org/sugarj/stdlib/StdTrans
+        org/sugarj/languages/SugarJS

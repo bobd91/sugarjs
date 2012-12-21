@@ -1,0 +1,4 @@
+module org/sugarj/javascript/init/initGrammar
+imports org/sugarj/languages/JavaScript
+        org/sugarj/languages/SugarJS
+        org/sugarj/stdlib/Common
