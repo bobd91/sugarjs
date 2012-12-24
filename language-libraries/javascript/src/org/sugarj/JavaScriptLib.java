@@ -30,7 +30,6 @@ import org.sugarj.common.path.Path;
 import org.sugarj.common.path.RelativePath;
 import org.sugarj.languagelib.SourceFileContent;
 import org.sugarj.javascript.JavaScriptSourceFileContent;
-import org.sugarj.javascript.JavaScriptSourceFileContent.JavaScriptModuleImport;
 
 public class JavaScriptLib extends LanguageLib implements Serializable {
 
@@ -65,7 +64,7 @@ public class JavaScriptLib extends LanguageLib implements Serializable {
   public List<File> getGrammars() {
     List<File> grammars = new LinkedList<File>(super.getGrammars());
     grammars.add(ensureFile("org/sugarj/languages/SugarJS.def"));
-    grammars.add(ensureFile("org/sugarj/languages/JavaScript.def"));
+    grammars.add(ensureFile("org/sugarj/languages/JavaScript-51.def"));
     return Collections.unmodifiableList(grammars);
   }
   
@@ -146,11 +145,7 @@ public class JavaScriptLib extends LanguageLib implements Serializable {
     
     @Override
     public boolean isLanguageSpecificDec(IStrategoTerm decl) {
-    return isApplication(decl, "NonUnitClause") || 
-        isApplication(decl, "UnitClause") ||
-        isApplication(decl, "Query") ||
-        isApplication(decl, "Command") ||
-        isApplication(decl, "ModuleReexport");        
+    return isApplication(decl, "Program");        
     }
 
     @Override
@@ -160,8 +155,7 @@ public class JavaScriptLib extends LanguageLib implements Serializable {
     
     @Override
     public boolean isNamespaceDec(IStrategoTerm decl) {
-      return isApplication(decl, "ModuleDec") ||
-          isApplication(decl, "SugarModuleDec");
+      return isApplication(decl, "SugarModuleDec");
     }
     
     @Override
@@ -171,7 +165,7 @@ public class JavaScriptLib extends LanguageLib implements Serializable {
 
     @Override
     public boolean isImportDec(IStrategoTerm decl) {
-      return isApplication(decl, "ModuleImport");
+      return isApplication(decl, "SugarImportDec");
     }
 
     @Override
@@ -206,7 +200,7 @@ public class JavaScriptLib extends LanguageLib implements Serializable {
 
   @Override
   public void processLanguageSpecific(IStrategoTerm toplevelDecl, Environment environment) throws IOException {
-    jsSource.addBodyDecl(prettyPrint(toplevelDecl));
+    jsSource.setProgram(prettyPrint(toplevelDecl));
   }
 
   
@@ -228,15 +222,11 @@ public class JavaScriptLib extends LanguageLib implements Serializable {
   @Override
   public void setupSourceFile(RelativePath sourceFile, Environment environment) {
     jsOutFile = environment.createBinPath(FileCommands.dropExtension(sourceFile.getRelativePath()) + "." + getGeneratedFileExtension());
-    jsSource = new JavaScriptSourceFileContent(this);
-    jsSource.setOptionalImport(false);    
+    jsSource = new JavaScriptSourceFileContent(); 
   }
 
   @Override
   public String getRelativeNamespace() {
-    // XXX: Is there a namespace separator in prolog? Or even any notion of compound namespaces?
-    // XXX: From swi prolog doc: Modules are organised in a single and flat namespace and therefore module names must be chosen with some care to avoid conflicts.
-    // XXX: SugarProlog will implement different namespace handling.
     return relNamespaceName;
   } 
   
@@ -247,23 +237,13 @@ public class JavaScriptLib extends LanguageLib implements Serializable {
       RelativePath sourceFile,
       RelativePath sourceFileFromResult) throws IOException {
     
-    String moduleName = null;
-    if (isApplication(toplevelDecl, "ModuleDec")) {
-      moduleName = prettyPrint(getApplicationSubterm(toplevelDecl, "ModuleDec", 0));
-      jsSource.setModuleDecl(prettyPrint(toplevelDecl));
-    } else if (isApplication(toplevelDecl, "SugarModuleDec")) {
-      moduleName = prettyPrint(getApplicationSubterm(toplevelDecl, "SugarModuleDec", 0));
-      jsSource.setModuleDecl(":-module(" + moduleName + ", []).");
-    }
+    String moduleName = prettyPrint(getApplicationSubterm(toplevelDecl, "SugarModuleDec", 0));
     
     relNamespaceName = FileCommands.dropFilename(sourceFile.getRelativePath());
     decName = getRelativeModulePath(moduleName);
     log.log("The SDF / Stratego package name is '" + relNamespaceName + "'.", Log.DETAIL);
     
-    if (jsOutFile == null) 
-      jsOutFile = environment.createBinPath(getRelativeNamespaceSep() + FileCommands.fileName(sourceFileFromResult) + "." + getGeneratedFileExtension());
-  }
-  
+  }  
 
   @Override
   public LanguageLibFactory getFactoryForLanguage() {
@@ -272,22 +252,13 @@ public class JavaScriptLib extends LanguageLib implements Serializable {
 
   @Override
   protected void compile(List<Path> sourceFiles, Path bin, List<Path> path,
-      boolean generateFiles)
-      throws IOException {
-
-    if (generateFiles) {
-      for (Path file : sourceFiles) {
-        // XXX: do nothing here?
-        System.err.println("javascript;     no compilation neccessary, file: " + file);
-      }
-    }
-
+      boolean generateFiles) {
+    ;
   }
   
   @Override
   public String getImportedModulePath(IStrategoTerm toplevelDecl) throws IOException {
     String modulePath = prettyPrint(toplevelDecl.getSubterm(0).getSubterm(0));
-    
     return modulePath;    
   }
   
@@ -296,15 +267,8 @@ public class JavaScriptLib extends LanguageLib implements Serializable {
   }
   
   @Override
-  public void addImportModule(IStrategoTerm toplevelDecl, boolean checked) throws IOException {
-    
-    String importedModuleName = prettyPrint(toplevelDecl.getSubterm(0).getSubterm(0));
-    JavaScriptModuleImport imp = jsSource.getImport(importedModuleName, toplevelDecl);
-    
-    if (checked)
-      jsSource.addCheckedImport(imp);
-    else
-      jsSource.addImport(imp);  
+  public void addImportModule(IStrategoTerm toplevelDecl, boolean checked) {
+    throw new UnsupportedOperationException("SugarJS does not support JavaScript imports");  
   }
 
   @Override
@@ -333,12 +297,12 @@ public class JavaScriptLib extends LanguageLib implements Serializable {
 
   @Override
   public String getEditorName(IStrategoTerm decl) throws IOException {
-    throw new UnsupportedOperationException("SugarProlog does currently not support editor libraries.");
+    throw new UnsupportedOperationException("SugarJS does currently not support editor libraries.");
   }
 
   @Override
   public IStrategoTerm getEditorServices(IStrategoTerm decl) {
-    throw new UnsupportedOperationException("SugarProlog does currently not support editor libraries.");
+    throw new UnsupportedOperationException("SugarJS does currently not support editor libraries.");
   }
 
 

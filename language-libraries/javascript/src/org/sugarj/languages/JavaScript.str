@@ -1,0 +1,15 @@
+module org/sugarj/languages/JavaScript
+
+signature
+  constructors
+    Return   : JavaScriptExpression -> JavaScriptReturnStatement
+    Return   : JavaScriptReturnStatement
+    Expr  : JavaScriptExpression -> JavaScriptExpression
+    Expr  : JavaScriptExpression
+          : JavaScriptExpression -> JavaScriptExpressionStatement
+          : JavaScriptReturnStatement -> JavaScriptStatement
+          : JavaScriptExpressionStatement -> JavaScriptStatement
+          : JavaScriptStatement -> JavaScriptSourceElement
+    EmptySourceElement : JavaScriptSourceElements
+    SourceElement   : JavaScriptSourceElement * JavaScriptSourceElements -> JavaScriptSourceElements
+    Program  : Option(JavaScriptSourceElements) -> JavaScriptProgram

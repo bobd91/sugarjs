@@ -1,0 +1,53 @@
+definition
+
+module JavaScript-51
+
+exports
+  
+  sorts
+    Program SourceElements SourceElement Statement ExpressionStatement ReturnStatement Expression
+    
+  
+  context-free start-symbols
+    Program
+  
+  context-free syntax
+  
+  SourceElements? -> Program {cons("Program")}
+  
+  SourceElement ";" SourceElements -> SourceElements {cons("SourceElement")}
+  SourceElement SourceElements -> SourceElements {layout("1.first.line < 2.first.line"), prefer, cons("SourceElement")}
+  -> SourceElements {cons("EmptySourceElement")}
+  
+  Statement -> SourceElement
+  
+  ExpressionStatement -> Statement
+  ReturnStatement -> Statement
+  
+  Expression -> ExpressionStatement
+  
+  "a" -> Expression {cons("Expr")}
+  "a" "b" -> Expression {cons("Expr")}
+  "a" "b" "c" -> Expression {cons("Expr")}
+  
+  "b" -> Expression {cons("Expr")}
+  "b" "c" -> Expression {cons("Expr")}
+  
+  "c" -> Expression {cons("Expr")}
+  
+  Expression "++" -> Expression {layout("1.first.line = 2.first.line"),cons("Expr")}
+  "++" Expression -> Expression  {cons("Expr")}
+  
+  
+  "return" -> ReturnStatement {cons("Return")}
+  "return" Expression -> ReturnStatement {layout("1.first.line = 2.first.line"), cons("Return")}
+  
+module org/sugarj/languages/JavaScript
+imports JavaScript-51
+  [ Program   =>    JavaScriptProgram
+    SourceElements    => JavaScriptSourceElements
+    SourceElement => JavaScriptSourceElement
+    Statement => JavaScriptStatement
+    ExpressionStatement => JavaScriptExressionStatement
+    ReturnStatement => JavaScriptReturnStatement
+    Expression => JavaScriptExpression ]

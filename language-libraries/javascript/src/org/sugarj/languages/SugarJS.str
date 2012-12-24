@@ -1,0 +1,13 @@
+module org/sugarj/languages/SugarJS
+imports org/sugarj/languages/Sugar
+signature constructors
+    CompilationUnit        : List(SugarImportDec) * JavaScriptProgram -> SugarCompilationUnit
+    CompilationUnit        : List(SugarImportDec) * SugarDec -> SugarCompilationUnit
+
+    SugarBody              : SugarDef -> SugarBody
+    SugarDec               : SugarModuleDec * SugarBody -> SugarDec
+    SugarModuleDec         : SugarModuleSpec -> SugarModuleDec
+    SugarImportDec         : SugarModuleSpec -> SugarImportDec
+    SugarModuleSpec        : SugarModuleName -> SugarModuleSpec
+    SugarModuleName        : List(SugarModulePart)
+    
