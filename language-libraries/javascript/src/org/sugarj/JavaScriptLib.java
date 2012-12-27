@@ -49,13 +49,17 @@ public class JavaScriptLib extends LanguageLib implements Serializable {
   private IStrategoTerm pptable = null;
   private File prettyPrint = null;
 
+  static {
+    log.setLoggingLevel(Log.ALWAYS);
+  }
+  
   public String getVersion() {
     return "javascript-0.1";
   }
 
   private File getPrettyPrint() {
     if (prettyPrint == null)
-      prettyPrint = ensureFile("org/sugarj/languages/JavaScript.pp");
+      prettyPrint = ensureFile("org/sugarj/languages/JavaScript-51.pp");
     
     return prettyPrint;
   }
@@ -155,7 +159,7 @@ public class JavaScriptLib extends LanguageLib implements Serializable {
     
     @Override
     public boolean isNamespaceDec(IStrategoTerm decl) {
-      return isApplication(decl, "SugarModuleDec");
+      return isApplication(decl, "SugarModule");
     }
     
     @Override
@@ -223,6 +227,11 @@ public class JavaScriptLib extends LanguageLib implements Serializable {
   public void setupSourceFile(RelativePath sourceFile, Environment environment) {
     jsOutFile = environment.createBinPath(FileCommands.dropExtension(sourceFile.getRelativePath()) + "." + getGeneratedFileExtension());
     jsSource = new JavaScriptSourceFileContent(); 
+    relNamespaceName = FileCommands.dropFilename(sourceFile.getRelativePath());
+    decName = getRelativeModulePath(
+                FileCommands.dropExtension(
+                    FileCommands.fileName(
+                        sourceFile.getRelativePath())));
   }
 
   @Override
@@ -237,9 +246,8 @@ public class JavaScriptLib extends LanguageLib implements Serializable {
       RelativePath sourceFile,
       RelativePath sourceFileFromResult) throws IOException {
     
-    String moduleName = prettyPrint(getApplicationSubterm(toplevelDecl, "SugarModuleDec", 0));
+    String moduleName = prettyPrint(getApplicationSubterm(toplevelDecl, "SugarModule", 0));
     
-    relNamespaceName = FileCommands.dropFilename(sourceFile.getRelativePath());
     decName = getRelativeModulePath(moduleName);
     log.log("The SDF / Stratego package name is '" + relNamespaceName + "'.", Log.DETAIL);
     
@@ -253,7 +261,6 @@ public class JavaScriptLib extends LanguageLib implements Serializable {
   @Override
   protected void compile(List<Path> sourceFiles, Path bin, List<Path> path,
       boolean generateFiles) {
-    ;
   }
   
   @Override

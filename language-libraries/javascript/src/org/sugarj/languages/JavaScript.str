@@ -2,14 +2,21 @@ module org/sugarj/languages/JavaScript
 
 signature
   constructors
-    Return   : JavaScriptExpression -> JavaScriptReturnStatement
-    Return   : JavaScriptReturnStatement
-    Expr  : JavaScriptExpression -> JavaScriptExpression
-    Expr  : JavaScriptExpression
-          : JavaScriptExpression -> JavaScriptExpressionStatement
-          : JavaScriptReturnStatement -> JavaScriptStatement
-          : JavaScriptExpressionStatement -> JavaScriptStatement
-          : JavaScriptStatement -> JavaScriptSourceElement
-    EmptySourceElement : JavaScriptSourceElements
-    SourceElement   : JavaScriptSourceElement * JavaScriptSourceElements -> JavaScriptSourceElements
-    Program  : Option(JavaScriptSourceElements) -> JavaScriptProgram
+                       : Statement -> SourceElement
+    SourceElement      : SourceElement * SourceElements -> SourceElements
+    SourceElement      : SourceElement -> SourceElements
+    Program            : Option(SourceElements) -> Program
+    Return             : Expression -> ReturnStatement
+    Return             : ReturnStatement
+                       : Expression -> ExpressionStatement
+                       : ReturnStatement -> Statement
+                       : ExpressionStatement -> Statement
+    StringLiteral      : StringLiteral -> Expression
+    NumericLiteral     : NumericLiteral -> Expression
+    Identifier         : Identifier -> Expression
+    SingleQuotedString : List(SingleStringChar) -> StringLiteral
+    DoubleQuotedString : List(DoubleStringChar) -> StringLiteral
+                       : String -> SingleStringChar
+                       : String -> DoubleStringChar
+                       : String -> NumericLiteral
+                       : String -> Identifier
