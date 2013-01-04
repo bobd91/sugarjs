@@ -10,7 +10,7 @@ imports org/sugarj/languages/JavaScript
 exports
  
   lexical syntax
-    [\ \r\n] -> LAYOUT
+    [\ \t\12\r\n] -> LAYOUT
 
   context-free syntax 
     JavaScriptProgram -> ToplevelDeclaration

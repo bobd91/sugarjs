@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<project name="SugarJS" default="all">
+        
+        <!-- Key input modules -->
+        <property name="sdfmodule" value="JavaScript-51"/>
+    
+        <!-- Project directories -->
+        <property name="include" location="src/org/sugarj/languages"/>
+        
+        <!-- Environment configuration for command-line builds -->
+        <condition property="build.strategoxt.sdf" value="${eclipse.spoofaximp.nativeprefix}" else="">
+            <isset property="eclipse.spoofaximp.nativeprefix"/>
+        </condition>
+	
+  <target name="rtg2sig" depends="sdf2rtg">
+       <dependset>
+           <srcfileset file="${include}/${sdfmodule}.rtg"/>
+           <targetfileset file="${include}/${sdfmodule}.str"/>
+       </dependset>
+       <available file="${include}/${sdfmodule}.str" property="rtg2sig.available"/>
+       <antcall target="rtg2sig.helper"/>
+   </target>
+
+   <target name="rtg2sig.helper" unless="rtg2sig.available">
+       <java classname="run" failonerror="true">
+           <arg value="org.strategoxt.tools.main-rtg2sig"/>
+           <arg value="-i"/>
+           <arg value="${include}/${sdfmodule}.rtg"/>
+           <arg value="-o"/>
+           <arg value="${include}/${sdfmodule}.str"/>
+           <arg value="--module"/>
+           <arg value="${sdfmodule}"/>
+       </java>
+   </target>
+   
+   <target name="sdf2rtg">
+       <dependset>
+           <srcfileset file="${include}/${sdfmodule}.def"/>
+           <targetfileset file="${include}/${sdfmodule}.rtg"/>
+       </dependset>
+       <available file="${include}/${sdfmodule}.rtg" property="sdf2rtg.available"/>
+       <antcall target="sdf2rtg.helper"/>
+   </target>
+
+   <target name="sdf2rtg.helper" unless="sdf2rtg.available">
+       <java classname="run" failonerror="true">
+           <arg value="org.strategoxt.tools.main-sdf2rtg"/>
+           <arg value="-i"/>
+           <arg value="${include}/${sdfmodule}.def"/>
+           <arg value="-m"/>
+           <arg value="${sdfmodule}"/>
+           <arg value="-o"/>
+           <arg value="${include}/${sdfmodule}.rtg"/>
+           <arg value="--ignore-missing-cons"/>
+           <arg value="-Xnativepath"/>
+           <arg value="${build.strategoxt.sdf}"/>
+       </java>
+   </target>
+
+  <target name="ppgen" >
+        <dependset>
+            <srcfileset file="${include}/${sdfmodule}.def"/>
+            <targetfileset file="${include}/${sdfmodule}.generated.pp"/>
+            <targetfileset file="${include}/${sdfmodule}.generated.pp.af"/>
+        </dependset>
+        <available file="${include}/${sdfmodule}.generated.pp.af" property="ppgen.available"/>
+        <antcall target="ppgen.helper"/>
+        <available file="${include}/${sdfmodule}.generated.pp.af" property="ppgen.available"/>
+        <antcall target="ppgen.helper.fallback"/>
+    </target>
+
+    <target name="ppgen.helper" unless="ppgen.available">
+        <!-- Any failures here are ignored; they are only a problem when imported from Stratego -->
+        <java classname="run" failonerror="false">
+            <arg value="org.strategoxt.tools.main-ppgen"/>
+            <arg value="-i"/>
+            <arg value="${include}/${sdfmodule}.def"/>
+            <arg value="-t"/>
+            <arg value="-b"/>
+            <arg value="-o"/>
+            <arg value="${include}/${sdfmodule}.generated.pp.af"/>
+        </java>
+        <java classname="run" failonerror="false">
+            <arg value="org.strategoxt.tools.main-pp-pp-table"/>
+            <arg value="-i"/>
+            <arg value="${include}/${sdfmodule}.generated.pp.af"/>
+            <arg value="-o"/>
+            <arg value="${include}/${sdfmodule}.generated.pp"/>
+        </java>
+    </target>
+
+    <target name="ppgen.helper.fallback" unless="ppgen.available">
+        <echo file="${include}/${sdfmodule}.generated.pp.af" message="PP-Table([])"/>
+    </target>
+
+
+    
+        <!-- Main target -->
+        <target name="all" depends="sdf2rtg,rtg2sig"/>
+    </project>

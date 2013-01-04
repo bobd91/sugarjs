@@ -3,73 +3,50 @@ definition
 %% ECMA-262 ECMAScript 5.1
 %% Missing full Unicode support
     
-%% 7.4 Whitespace    
-module languages/javascript-51/lexical/Whitespace
-  exports
-    
-    lexical syntax
-      [\ \t\n\11\12\r] -> LAYOUT
-    
-    lexical restrictions
-      LAYOUT? -/- [\ \t\n\11\12\r]
-
+%% Layout
+%% 7.2 Whitespace    
 %% 7.3 Line Terminators
-module languages/javascript-51/lexical/LineTerminators
+%% 7.4 Comments      
+module ecmascript-51/Layout
   exports
-    
-    sorts
-      LineTerminatorSequence
-    
+      
     lexical syntax
+      [\ \t\12\r\n] -> LAYOUT
+    
       [\n]   -> LineTerminatorSequence
       CR     -> LineTerminatorSequence
-      [\r\n] -> LineTerminatorSequence
+      [\r][\n] -> LineTerminatorSequence
       [\r]   -> CR
       
-    lexical restrictions
-      CR -/- [\n]
-      
-%% 7.4 Comments      
-module languages/javascript-51/lexical/Comment
-imports languages/javascript-51/lexical/LineTerminators
-
-  exports
-  
-    lexical syntax
       "//" ~[\r\n]*                 -> LAYOUT
       "/*" (~[\*] | Asterisk)* "*/" -> LAYOUT
       [\*]                          -> Asterisk
-      
+
+      -> EOF
+
     lexical restrictions
+      CR -/- [\n]
       Asterisk -/- [\/]
+      EOF -/- ~[]
 
-%% 7.6 Identifiers
-%%     No Unicode escape support
-module languages/javascript-51/lexical/Identifiers
-imports languages/javascrip-51/lexical/ReservedWords
+    context-free restrictions
+      LAYOUT? -/- [\ \t\12\n\r] | [\/]/[\/] | [\/].[\*]
 
+%% 7.6 Identifiers; No Unicode escape support
+%% 7.6.1 Reserved Words
+module ecmascript-51/Identifiers
   exports
     
-    sorts
-      Identifier
-      
+    context-free syntax
+      Id -> Identifier {cons("Id")}
+        
     lexical syntax
-      [A-Za-z\$\_] [A-Za-z0-9\$\_]* -> Identifier
-      ReservedWord                  -> Identifier {reject}
+      [A-Za-z\$\_][A-Za-z0-9\$\_]*  -> Id
+      ReservedWord                  -> Id {reject}
     
     lexical restrictions
-      Identifier -/- [A-Za-z0-9\$\_]
+      Id -/- [A-Za-z0-9\$\_]
     
-%% 7.6.1 Reserved Words
-module languages/javascript-51/lexical/ReservedWords
-imports languages/javascript-51/lexical/NullLiterals
-        languages/javascript-51/lexical/BooleanLiterals
-
-  exports
-    
-    sorts
-      ReservedWord
-
     lexical syntax
       "break"      -> Keyword
       "case"       -> Keyword
@@ -122,179 +99,222 @@ imports languages/javascript-51/lexical/NullLiterals
       
       lexical restrictions
         Keyword FutureReservedWord -/- [A-Za-z0-9\$\_]
-        
+
+%% 7.8 Literals        
 %% 7.8.1 Null Literals
-module languages/javascript-51/lexical/NullLiterals
-    exports
-      sorts
-        NullLiteral
-        
-      lexical syntax
-        "null"    -> NullLiteral
-
-      lexical restrictions
-        NullLiteral -/- [A-Za-z0-9\$\_]
-        
 %% 7.8.2 Boolean Literals
-module languages/javascript-51/lexical/BooleanLiterals
-    exports
-      sorts
-        BooleanLiteral
-      
-      lexical syntax        
-        "true"    -> BooleanLiteral
-        "false"   -> BooleanLiteral
-
-      lexical restrictions
-        BooleanLiteral -/- [A-Za-z0-9\$\_]
-
 %% 7.8.3 Numeric Literals
-module languages/javascript-51/lexical/NumericLiterals
-    exports
-      sorts
-        NumericLiteral
-      
-      lexical syntax
-        DecimalLiteral    -> NumericLiteral
-        HexIntegerLiteral -> NumericLiteral
-                
-        "0"         -> DecimalIntegerLiteral
-        [1-9][0-9]* -> DecimalIntegerLiteral
-        
-        DecimalIntegerLiteral "." [0-9]* ExponentPart? -> DecimalLiteral
-        "." [0-9]+ ExponentPart? -> DecimalLiteral
-        DecimalIntegerLiteral ExponentPart? -> DecimalLiteral
-        
-        [eE] SignedInteger -> ExponentPart
-        [\+\-]? [0-9]+ -> SignedInteger
-        
-        [0][xX][0-9a-fA-F]+ -> HexIntegerLiteral
-        
-        
-        
-        
-      lexical restrictions
-        DecimalIntegerLiteral DecimalLiteral SignedInteger -/- [0-9]
-        HexIntegerLiteral -/- [0-9a-fA-F]
-        
 %% 7.8.4 String Literals
-module languages/javascript-51/lexical/StringLiterals
-imports languages/javascript-51/lexical/LineTerminators
-    exports
-      sorts
-        StringLiteral
-      
-      context-free syntax
-        "\"" DoubleStringChar* "\""   -> StringLiteral {cons("DoubleQuotedString")}
-        "'" SingleStringChar* "'"  -> StringLiteral {cons("SingleQuotedString")}
-        
-      lexical syntax
-        ~[\"\\\r\n] -> DoubleStringChar
-        [\\] EscapeSequence -> DoubleStringChar
-        [\\] LineTerminatorSequence -> DoubleStringChar
-        
-        ~[\'\\\r\n] -> SingleStringChar
-        [\\] EscapeSequence -> SingleStringChar
-        [\\] LineTerminatorSequence -> SingleStringChar
-        
-        Zero -> EscapeSequence
-        ~[0-9xu\r\n] -> EscapeSequence
-        [x][0-9a-fA-F][0-9a-fA-F] -> EscapeSequence
-        [u][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F] -> EscapeSequence
-        
-        [0] -> Zero
-        
-      lexical restrictions
-        Zero -/- [0-9]
-        
- %% 7.8.5 regular Expression Literals
- %% TODO
- 
- %% 11 Expressions
- module languages/javascript-51/Expressions
- imports 
-   languages/javascript-51/lexical/Identifiers
-   languages/javascript-51/lexical/ReservedWords
-   languages/javascript-51/lexical/NullLiterals
-   languages/javascript-51/lexical/BooleanLiterals
-   languages/javascript-51/lexical/NumericLiterals
-   languages/javascript-51/lexical/StringLiterals
-   
-    exports
-      sorts
-        Expression
-     
-      context-free syntax
-        Identifier -> Expression {cons("Identifier")}
-        NumericLiteral -> Expression {cons("NumericLiteral")}
-        StringLiteral -> Expression {cons("StringLiteral")}
-
-module languages/javascript-51/Statements
-imports languages/javascript-51/Expressions
+%% TODO 7.8.5 regular Expression Literals
+module ecmascript-51/Literals
   exports
-  
-    sorts
-      Statement ExpressionStatement ReturnStatement
+      
+    lexical syntax
+      "null"    -> NullLiteral
+
+    lexical restrictions
+      NullLiteral -/- [A-Za-z0-9\$\_]
+        
+    lexical syntax        
+      "true"    -> BooleanLiteral
+      "false"   -> BooleanLiteral
+
+    lexical restrictions
+      BooleanLiteral -/- [A-Za-z0-9\$\_]
+
+    context-free syntax
+      DecimalLiteral    -> NumericLiteral {cons("Num")}
+      HexIntegerLiteral -> NumericLiteral {cons("HexNum")}
+              
+    lexical syntax
+      "0"         -> DecimalIntegerLiteral
+      [1-9][0-9]* -> DecimalIntegerLiteral
+      
+      
+      DecimalIntegerLiteral "." [0-9]* ExponentPart? -> DecimalLiteral
+      "." [0-9]+ ExponentPart? -> DecimalLiteral
+      DecimalIntegerLiteral ExponentPart? -> DecimalLiteral
+      
+      [eE] SignedInteger -> ExponentPart
+      [\+\-]? [0-9]+ -> SignedInteger
+      
+      [0][xX][0-9a-fA-F]+ -> HexIntegerLiteral
+      
+    lexical restrictions
+      DecimalIntegerLiteral DecimalLiteral SignedInteger -/- [0-9]
+      HexIntegerLiteral -/- [0-9a-fA-F]
+        
+    context-free syntax
+      DoubleQuotedString   -> StringLiteral {cons("DoubleQuotedString")}
+      SingleQuotedString  -> StringLiteral {cons("SingleQuotedString")}
+        
+    lexical syntax
+      "\"" DoubleStringChar* "\""   -> DoubleQuotedString
+      "'" SingleStringChar* "'"  -> SingleQuotedString
+
+      ~[\"\\\r\n] -> DoubleStringChar
+      [\\] EscapeSequence -> DoubleStringChar
+      [\\] LineTerminatorSequence -> DoubleStringChar
+      
+      ~[\'\\\r\n] -> SingleStringChar
+      [\\] EscapeSequence -> SingleStringChar
+      [\\] LineTerminatorSequence -> SingleStringChar
+      
+      Zero -> EscapeSequence
+      ~[0-9xu\r\n] -> EscapeSequence
+      [x][0-9a-fA-F][0-9a-fA-F] -> EscapeSequence
+      [u][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F] -> EscapeSequence
+      
+      [0] -> Zero
+      
+    lexical restrictions
+      Zero -/- [0-9]
+        
+%% 7.9 Automatic Semicolon Insertion
+%% All {} delimited code should use OpenBlock and CloseBlock rather than "{" and "}"
+%% Any statement that supports auto semicolon insertion should -> AutoSemiStatement 
+%% Other statements should -> Statement
+module ecmascript-51/AutoSemiInsertion
+  exports
+   
+    context-free syntax 
+      "{" -> OpenBlock {cons("OpenBlk")}
+      "}" -> CloseBlock {cons("CloseBlk")}
+      AutoSemiStatement "}" -> CloseBlock {cons("AutoCloseBlk"), layout("1.last.line==2.first.line")}
+
+      SemiStatement -> Statement {longest-match}
+
+      AutoSemiStatement ";" -> SemiStatement {cons("SemiStm")}
+      AutoSemiStatement LAYOUT? -> SemiStatement {cons("AutoStm"), enforce-newline}
+      %% Not tested
+      %% AutoSemiStatement EOF -> SemiStatement {cons("EOFStm")}
+ 
+%% 11 Expressions
+module ecmascript-51/Expressions
+  exports
+   
+    context-free syntax
+      Identifier -> Expression {cons("Identifier")}
+      NumericLiteral -> Expression {cons("NumericLiteral")}
+      StringLiteral -> Expression {cons("StringLiteral")}
+      Identifier -> LHSExpression
+      Expression -> AssignmentExpression
+      
+%% 12 Statements
+module ecmascript-51/Statements
+  exports
     
     context-free syntax
-      ExpressionStatement -> Statement
-      ReturnStatement -> Statement
-  
-      Expression -> ExpressionStatement
-  
-      "return" -> ReturnStatement {cons("Return")}
-      "return" Expression -> ReturnStatement {layout("1.first.line == 2.first.line"), cons("Return")}
-       
-module languages/javascript-51/Program
-imports languages/javascript-51/Statements
+      %% 12.1 Block
+      Block -> Statement
+    	OpenBlock Statement* CloseBlock -> Block {cons("Block")}
+      
+      %% 12.2 Variable statement
+      "var" {VarDeclaration ","}+ -> AutoSemiStatement {cons("VarStm")}
+      Identifier Initialiser? -> VarDeclaration {cons("VarDec")}
+      "=" AssignmentExpression -> Initialiser {cons("VarInit")}
+      
+      %% 12.3 Empty Statement
+      ";" -> Statement {cons("EmptyStm")}   
+      
+      %% 12.4 Expression Statement
+      %% TODO: reject expressions starting with { or 'function'
+      Expression -> AutoSemiStatement {cons("ExprStm")}
+      
+      %% 12.5 if Statement
+      "if" "(" Expression ")" Statement -> Statement {cons("IfStm"), prefer}
+      "if" "(" Expression ")" Statement "else" Statement -> Statement {cons("IfElseStm")}
+      
+      %% 12.6.1 do-while Statement
+      "do" Statement "while" "(" Expression ")" -> AutoSemiStatement {cons("DoStm")}
+      
+      %% 12.6.2 while Statement
+      "while" "(" Expression ")" Statement -> Statement {cons("WhileStm")}
+      
+      %% 12.6.3 for Statement
+      %% TODO: no-in handling
+      "for" "(" Expression? ";" Expression? ";" Expression? ")" Statement -> Statement {cons("ForSmt")}
+      "for" "(" "var" {VarDeclaration ","}+ ";" Expression? ";" Expression? ")" Statement -> Statement {cons("ForSmt")}
+      
+      %% 12.6.4 for-in Statement
+      %% TODO: no-in handling
+      "for" "(" LHSExpression "in" Expression ")" Statement -> Statement {cons("ForInStm")}
+      "for" "(" "var" VarDeclaration "in" Expression ")" Statement -> Statement {cons("ForInStm")}
+      
+      %% 12.7 continue Statement
+      "continue" -> AutoSemiStatement {cons("ContinueStm")}
+      "continue" Identifier -> AutoSemiStatement {cons("ContinueStm"), layout("1.first.line == 2.first.line")}
+      
+      %% 12.8 break Statement
+      "break" -> AutoSemiStatement {cons("BreakStm")}
+      "break" Identifier -> AutoSemiStatement {cons("BreakStm"), layout("1.first.line == 2.first.line")}
+      
+      %% 12.9 return Statement
+      "return" -> AutoSemiStatement {cons("ReturnStm")}
+      "return" Expression -> AutoSemiStatement {cons("ReturnStm"), layout("1.first.line == 2.first.line")}
+     
+      %% 12.10 with Statement
+      %% Not implemented, considered dangerous
+
+      %% 12.11 switch Statement
+      "switch" "(" Expression ")" CaseBlock -> Statement {cons("SwitchStm")}
+      OpenBlock CaseClause* CloseBlock -> CaseBlock {cons("CaseBlock")}
+      "case" Expression ":" Statement* -> CaseClause {cons("Case")}
+      "default" ":" Statement* -> CaseClause {cons("Default")}
+      
+      %% 12.12 Labelled Statements
+      Identifier ":" Statement -> Statement {cons("LabelledStm")}
+      
+      %% 12.13 throw Statement
+      "throw" Expression -> AutoSemiStatement {cons("ThrowStm"), layout("1.first.line == 2.first.line")}
+      
+      %% 12.14 try Statement
+      "try" Block Catch? Finally? -> Statement {cons("TryStm")}
+      "catch" "(" Identifier ")" Block -> Catch {cons("Catch")}
+      "finally" Block -> Finally {cons("Finally")}
+
+      %% 12.15 debugger Statement
+      "debugger" -> Statement {cons("DebuggerStm")}
+      
+%% 13 Function Declaration
+module ecmascript-51/Functions
   exports
-  
-    sorts
-      Program SourceElements SourceElement
+
+    context-free syntax
+      "function" Identifier "(" {Identifier ","}* ")" FunctionBody -> FunctionDeclaration {cons("FunDec")}
+      "function" Identifier? "(" {Identifier ","}* ")" FunctionBody -> Expression {cons("FunExp")}
+      
+      OpenBlock SourceElement* CloseBlock -> FunctionBody {cons("FnBody")}
+   
+%% 14 Program
+module ecmascript-51/Program
+  exports
     
     context-free start-symbols
       Program
     
     context-free syntax
-  
-      SourceElements? -> Program {cons("Program")}
-  
-      SourceElement -> SourceElements {cons("SourceElement")}
-      SourceElement ";" -> SourceElements {cons("SourceElement")}
+      SourceElement* -> Program {cons("Program")}
 
-      SourceElement ";" SourceElements -> SourceElements {cons("SourceElement")}
-      SourceElement SourceElements -> SourceElements {layout("1.first.line < 2.first.line"), cons("SourceElement")}
-  
-      Statement -> SourceElement {longest-match}
-  
+      Statement -> SourceElement
+      FunctionDeclaration -> SourceElement
  
-module languages/javascript-51/Main
+module ECMAScript-51
 imports
-  languages/javascript-51/Program
-  languages/javascript-51/Statements
-  languages/javascript-51/Expressions
-  languages/javascript-51/lexical/StringLiterals
-  languages/javascript-51/lexical/NumericLiterals
-  languages/javascript-51/lexical/BooleanLiterals
-  languages/javascript-51/lexical/NullLiterals
-  languages/javascript-51/lexical/ReservedWords
-  languages/javascript-51/lexical/Identifiers
-  languages/javascript-51/lexical/Comments
-  languages/javascript-51/lexical/LineTerminators
-  languages/javascript-51/lexical/Whitespace
-  
-module JavaScript-51
-imports 
-  languages/javascript-51/Main
+  ecmascript-51/Program
+  ecmascript-51/Functions
+  ecmascript-51/Statements
+  ecmascript-51/Expressions
+  ecmascript-51/AutoSemiInsertion
+  ecmascript-51/Literals
+  ecmascript-51/Identifiers
+  ecmascript-51/Layout
   
 module org/sugarj/languages/JavaScript
-imports JavaScript-51
+imports ECMAScript-51
   [ Program   =>    JavaScriptProgram
-    SourceElements    => JavaScriptSourceElements
     SourceElement => JavaScriptSourceElement
     Statement => JavaScriptStatement
-    ExpressionStatement => JavaScriptExressionStatement
-    ReturnStatement => JavaScriptReturnStatement
     Expression => JavaScriptExpression
     ReservedWord => JavaScriptReservedWord
     Identifier => JavaScriptIdentifier

@@ -2,15 +2,50 @@ module org/sugarj/languages/JavaScript
 
 signature
   constructors
+                       : FunctionDeclaration -> SourceElement
                        : Statement -> SourceElement
-    SourceElement      : SourceElement * SourceElements -> SourceElements
-    SourceElement      : SourceElement -> SourceElements
-    Program            : Option(SourceElements) -> Program
-    Return             : Expression -> ReturnStatement
-    Return             : ReturnStatement
-                       : Expression -> ExpressionStatement
-                       : ReturnStatement -> Statement
-                       : ExpressionStatement -> Statement
+    SrcElems           : List(SourceElement) * Option(AutoSemiStatement) -> SourceElements
+    Program            : SourceElements -> Program
+    FunBody            : SourceElements -> FunctionBody
+    FunDec             : Identifier * List(Identifier) * FunctionBody -> FunctionDeclaration
+    AutoSemi           : AutoSemiStatement * LineTerminatorSequence -> SemiStatement
+    WithSemi           : AutoSemiStatement -> SemiStatement
+    Finally            : Block -> Finally
+    Catch              : Identifier * Block -> Catch
+    CaseClauseBlock    : List(CaseClause) * Option(AutoSemiStatement) -> CaseClauseBlock
+    Default            : List(Statement) -> CaseClause
+    Case               : Expression * List(Statement) -> CaseClause
+    CaseBlock          : CaseClauseBlock -> CaseBlock
+    VarInit            : AssignmentExpression -> Initialiser
+    VarDec             : Identifier * Option(Initialiser) -> VarDeclaration
+    ThrowStm           : Expression -> AutoSemiStatement
+    ReturnStm          : Expression -> AutoSemiStatement
+    ReturnStm          : AutoSemiStatement
+    BreakStm           : Identifier -> AutoSemiStatement
+    BreakStm           : AutoSemiStatement
+    ContinueStm        : Identifier -> AutoSemiStatement
+    ContinueStm        : AutoSemiStatement
+    DoStm              : Statement * Expression -> AutoSemiStatement
+    ExprStm            : Expression -> AutoSemiStatement
+    VarStm             : List(VarDeclaration) -> AutoSemiStatement
+    StatementBlock     : List(Statement) * Option(AutoSemiStatement) -> StatementBlock
+    Block              : StatementBlock -> Block
+                       : SemiStatement -> Statement
+    DebuggerStm        : Statement
+    TryStm             : Block * Option(Catch) * Option(Finally) -> Statement
+    LabelledStm        : Identifier * Statement -> Statement
+    SwitchStm          : Expression * CaseBlock -> Statement
+    ForInStm           : VarDeclaration * Expression * Statement -> Statement
+    ForInStm           : LHSExpression * Expression * Statement -> Statement
+    ForSmt             : List(VarDeclaration) * Option(Expression) * Option(Expression) * Statement -> Statement
+    ForSmt             : Option(Expression) * Option(Expression) * Option(Expression) * Statement -> Statement
+    WhileStm           : Expression * Statement -> Statement
+    IfStm              : Expression * Statement * Statement -> Statement
+    IfStm              : Expression * Statement -> Statement
+    EmptyStm           : Statement
+    BlockStm           : Block -> Statement
+                       : Expression -> AssignmentExpression
+                       : Identifier -> LHSExpression
     StringLiteral      : StringLiteral -> Expression
     NumericLiteral     : NumericLiteral -> Expression
     Identifier         : Identifier -> Expression
@@ -18,5 +53,10 @@ signature
     DoubleQuotedString : List(DoubleStringChar) -> StringLiteral
                        : String -> SingleStringChar
                        : String -> DoubleStringChar
-                       : String -> NumericLiteral
-                       : String -> Identifier
+                       : String -> LineTerminatorSequence
+    HexNum             : HexIntegerLiteral -> NumericLiteral
+    Num                : DecimalLiteral -> NumericLiteral
+                       : String -> HexIntegerLiteral
+                       : String -> DecimalLiteral
+    Id                 : Id -> Identifier
+                       : String -> Id
