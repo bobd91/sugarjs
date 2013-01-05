@@ -1,5 +1,13 @@
 definition
 
+%% TODO: 
+%%       NotIn
+%%       RegExp
+%%       No ExpStmt if '{' or 'function'
+%%       Tidy up cons
+%%       Rename productions
+%%       Hide productions ?
+
 %% ECMA-262 ECMAScript 5.1
 %% Missing full Unicode support
     
@@ -38,14 +46,14 @@ module ecmascript-51/Identifiers
   exports
     
     context-free syntax
-      Id -> Identifier {cons("Id")}
+      IdentifierName -> Identifier {cons("Identifier")}
+      ReservedWord -> Identifier {reject}
         
     lexical syntax
-      [A-Za-z\$\_][A-Za-z0-9\$\_]*  -> Id
-      ReservedWord                  -> Id {reject}
+      [A-Za-z\$\_][A-Za-z0-9\$\_]*  -> IdentifierName
     
     lexical restrictions
-      Id -/- [A-Za-z0-9\$\_]
+      IdentifierName -/- [A-Za-z0-9\$\_]
     
     lexical syntax
       "break"      -> Keyword
@@ -95,7 +103,7 @@ module ecmascript-51/Identifiers
       Keyword            -> ReservedWord
       FutureReservedWord -> ReservedWord
       NullLiteral        -> ReservedWord
-      BooleanLiteral     -> ReserevdWord
+      BooleanLiteral     -> ReservedWord
       
       lexical restrictions
         Keyword FutureReservedWord -/- [A-Za-z0-9\$\_]
@@ -108,6 +116,13 @@ module ecmascript-51/Identifiers
 %% TODO 7.8.5 regular Expression Literals
 module ecmascript-51/Literals
   exports
+    
+    context-free syntax
+    NullLiteral -> Literal
+    BooleanLiteral -> Literal
+    NumericLiteral -> Literal
+    StringLiteral -> Literal
+    %% RegularExpressionLiteral -> Literal
       
     lexical syntax
       "null"    -> NullLiteral
@@ -171,7 +186,7 @@ module ecmascript-51/Literals
       Zero -/- [0-9]
         
 %% 7.9 Automatic Semicolon Insertion
-%% All {} delimited code should use OpenBlock and CloseBlock rather than "{" and "}"
+%% All {} enclosed statement lists should use OpenBlock and CloseBlock rather than "{" and "}"
 %% Any statement that supports auto semicolon insertion should -> AutoSemiStatement 
 %% Other statements should -> Statement
 module ecmascript-51/AutoSemiInsertion
@@ -186,19 +201,157 @@ module ecmascript-51/AutoSemiInsertion
 
       AutoSemiStatement ";" -> SemiStatement {cons("SemiStm")}
       AutoSemiStatement LAYOUT? -> SemiStatement {cons("AutoStm"), enforce-newline}
-      %% Not tested
-      %% AutoSemiStatement EOF -> SemiStatement {cons("EOFStm")}
+      AutoSemiStatement EOF -> SemiStatement {cons("EOFStm"), avoid}
  
 %% 11 Expressions
 module ecmascript-51/Expressions
   exports
    
     context-free syntax
-      Identifier -> Expression {cons("Identifier")}
-      NumericLiteral -> Expression {cons("NumericLiteral")}
-      StringLiteral -> Expression {cons("StringLiteral")}
-      Identifier -> LHSExpression
+      %% 11.1 Primary Expressions
+      "this" -> PrimaryExpression {cons("ThisExpr")}
+      Identifier -> PrimaryExpression {cons("IdExpr")}
+      Literal -> PrimaryExpression {cons("LitExpr")}
+      ArrayLiteral -> PrimaryExpression {cons("ArrLitExpr")}
+      ObjectLiteral -> PrimaryExpression {cons("ObjLitExpr")}
+      "(" Expression ")" -> PrimaryExpression {cons("ParenExpr")}
+      
+     "[" Comma* "]" -> ArrayLiteral {cons("ArrayLiteral")}
+     "[" Comma* ElementList Comma* "]" -> ArrayLiteral {cons("ArrayLiteral")}
+     AssignmentExpression -> ElementList {cons("ElementList")}
+     ElementList Comma+ AssignmentExpression -> ElementList {cons("ElementList")}
+      
+    lexical syntax
+      "," -> Comma   
+
+    context-free syntax
+      "{" {PropertyAssignment ","}* "}" -> ObjectLiteral {cons("ObjectLiteral")}
+      "{" {PropertyAssignment ","}* "," "}" -> ObjectLiteral {cons("ObjectLiteral")}
+      PropertyName ":" AssignmentExpression -> PropertyAssignment {cons("PropertyAssignment")}
+      "get" PropertyName "(" ")" FunctionBodyBlock -> PropertyAssignment {cons("PropertyGet")}
+      "set" PropertyName "(" Identifier ")" FunctionBodyBlock -> PropertyAssignment {cons("PropertySet")}
+      IdentifierName -> PropertyName
+      StringLiteral -> PropertyName
+      NumericLiteral -> PropertyName
+      
+    context-free syntax
+      %% 11.2 Left Hand Side Expressions
+      PrimaryExpression -> MemberExpression
+      FunctionExpression -> MemberExpression
+      MemberExpression "[" Expression "]" -> MemberExpression {cons("MbrIndex")}
+      MemberExpression "." IdentifierName -> MemberExpression {cons("MbrMbr")}
+      "new" MemberExpression Arguments -> MemberExpression {cons("NewMbr")}
+
+      MemberExpression -> NewExpression
+      "new"+ MemberExpression -> NewExpression {cons("NewExp")}
+
+      MemberExpression Arguments -> CallExpression {cons("CallArgs")}
+      CallExpression Arguments -> CallExpression {cons("CallArgs")}
+      CallExpression "[" Expression "]" -> CallExpression {cons("CallIndex")}
+      CallExpression "." IdentifierName -> CallExpression {cons("CallMbr")}        
+      
+      "(" {AssignmentExpression ","}* ")" -> Arguments {cons("Args")}
+
+      NewExpression -> LeftHandSideExpression {cons("LHS")}
+      CallExpression -> LeftHandSideExpression {cons("LHS")}    
+
+      LeftHandSideExpression -> Expression
+          
+    context-free priorities
+    {right:  
+      Expression "++" -> Expression {cons("PostInc"), layout("1.last.line==2.first.line")}
+      Expression "--" -> Expression {cons("PostDec"), layout("1.last.line==2.first.line")} 
+    }
+    >
+    {
+      "delete" Expression -> Expression {cons("Delete")}
+      "void" Expression -> Expression {cons("Void")}
+      "typeof" Expression -> Expression {cons("Typeof")}
+      "++" Expression -> Expression {cons("PreInc")}
+      "--" Expression -> Expression {cons("PreDec")}
+      "+" Expression -> Expression {cons("UnaryPlus")}
+      "-" Expression -> Expression {cons("UnaryMinus")}
+      "~" Expression -> Expression {cons("BitNot")}
+      "!" Expression -> Expression {cons("Not")}
+    }
+    >
+    {left:
+      Expression "*" Expression -> Expression {cons("Times")}
+      Expression "/" Expression -> Expression {cons("Divide")}
+      Expression "%" Expression -> Expression {cons("Remainder")} 
+    }
+    >
+    {left:
+      Expression "+" Expression -> Expression {cons("Plus")}
+      Expression "-" Expression -> Expression {cons("Minus")}
+    }
+    >
+    {left:
+      Expression "<<" Expression -> Expression {cons("LeftShift")}
+      Expression ">>" Expression -> Expression {cons("SignRightShift")}
+      Expression ">>>" Expression -> Expression {cons("NoSignRightShift")}
+    }
+    >
+    {left:
+      Expression "<" Expression -> Expression {cons("LessThan")}
+      Expression ">" Expression -> Expression {cons("GreaterThan")}
+      Expression "<=" Expression -> Expression {cons("LessEquals")}
+      Expression "<=" Expression -> Expression {cons("GreateEquals")}
+      Expression "instanceof" Expression -> Expression {cons("InstanceOf")}
+      Expression "in" Expression -> InExpression {cons("In")}
+      InExpression -> Expression 
+    }
+    >
+    {left:
+      Expression "==" Expression -> Expression {cons("Equals")}
+      Expression "!=" Expression -> Expression {cons("NotEquals")}
+      Expression "===" Expression -> Expresson {cons("StrictEquals")}
+      Expression "!==" Expression -> Expression {cons("StrictNotEquals")}
+    }
+    >
+      Expression "&" Expression -> Expression {left,cons("BitAnd")}
+    >
+      Expression "^" Expression -> Expression {left,cons("BitXor")}
+    >
+      Expression "|" Expression -> Expression {left,cons("BitOr")}
+    >
+      Expression "&&" Expression -> Expression {left,cons("And")}
+    >
+      Expression "||" Expression -> Expression {left,cons("Or")}
+    >
+      Expression CondMid Expression -> Expression {right, cons("Cond")}
+    >
+    {right:
+      LeftHandSideExpression "=" Expression -> Expression {cons("Assign")}
+      LeftHandSideExpression "*=" Expression -> Expression {cons("AssignMul")}
+      LeftHandSideExpression "/=" Expression -> Expression {cons("AssignDiv")}
+      LeftHandSideExpression "%=" Expression -> Expression {cons("AssignRem")}
+      LeftHandSideExpression "+=" Expression -> Expression {cons("AssignPlus")}
+      LeftHandSideExpression "-=" Expression -> Expression {cons("AssignMinus")}
+      LeftHandSideExpression "<<=" Expression -> Expression {cons("AssignLeftShift")}
+      LeftHandSideExpression ">>=" Expression -> Expression {cons("AssignSRightShift")}
+      LeftHandSideExpression ">>>=" Expression -> Expression {cons("AssignURightShift")}
+      LeftHandSideExpression "&=" Expression -> Expression {cons("AssignAnd")}
+      LeftHandSideExpression "^=" Expression -> Expression {cons("AssignXor")}
+      LeftHandSideExpression "|=" Expression -> Expression {cons("AssignOr")}
+    }
+    >
       Expression -> AssignmentExpression
+    >
+      Expression "," Expression -> Expression {left, cons("Comma")}
+
+    context-free syntax  
+      Expression -> ExpressionNoIn
+      InExpression -> ExpressionNoIn {reject}
+      AssignmentExpression -> AssignmentExpressionNoIn
+      InExpression -> AssignmentExpressionNoIn {reject}
+      
+      "?" Expression ":" -> CondMid{bracket}
+           
+    lexical restrictions
+	    "+" -/- [\+]
+	    "-" -/- [\-]
+	    "/" -/- [\/]
       
 %% 12 Statements
 module ecmascript-51/Statements
@@ -238,7 +391,7 @@ module ecmascript-51/Statements
       
       %% 12.6.4 for-in Statement
       %% TODO: no-in handling
-      "for" "(" LHSExpression "in" Expression ")" Statement -> Statement {cons("ForInStm")}
+      "for" "(" LeftHandSideExpression "in" Expression ")" Statement -> Statement {cons("ForInStm")}
       "for" "(" "var" VarDeclaration "in" Expression ")" Statement -> Statement {cons("ForInStm")}
       
       %% 12.7 continue Statement
@@ -281,10 +434,10 @@ module ecmascript-51/Functions
   exports
 
     context-free syntax
-      "function" Identifier "(" {Identifier ","}* ")" FunctionBody -> FunctionDeclaration {cons("FunDec")}
-      "function" Identifier? "(" {Identifier ","}* ")" FunctionBody -> Expression {cons("FunExp")}
+      "function" Identifier "(" {Identifier ","}* ")" FunctionBodyBlock -> FunctionDeclaration {cons("FunDec")}
+      "function" Identifier? "(" {Identifier ","}* ")" FunctionBodyBlock -> FunctionExpression {cons("FunExp")}
       
-      OpenBlock SourceElement* CloseBlock -> FunctionBody {cons("FnBody")}
+      OpenBlock SourceElement* CloseBlock -> FunctionBodyBlock {cons("FnBody")}
    
 %% 14 Program
 module ecmascript-51/Program
