@@ -2,13 +2,13 @@ definition
 
 %% TODO: 
 %%       RegExp
-%%       No ExpStmt if '{' or 'function'
 %%       Rename productions -> JavaScript...
 %%       Hide productions ?
 %%       Ought to implement 'with' statement
 
 %% ECMA-262 ECMAScript 5.1
-%% Missing full Unicode support
+%%  Missing full Unicode support
+%%  Lookahead restriction on ExpressionStatement is not properly implemented
     
 %% Layout
 %% 7.2 Whitespace    
@@ -205,8 +205,7 @@ module ecmascript-51/Expressions
   exports
    
     %% Using priorities is a useful way to describe operator precedence but does not make
-    %% it easy to specify precedence of new operators, the extending code would have to use
-    %% productions from the original grammar 
+    %% it easy to specify precedence of new operators
     %% Naming expression productions P1Expression, P2Expression and so on is not so neat
     %% but will make it easier to specify the precedence of a new operator    
     context-free syntax
@@ -218,12 +217,12 @@ module ecmascript-51/Expressions
       ObjectLiteral      -> P19Expression
       "(" Expression ")" -> P19Expression {cons("Paren")}
       
-    "[" "]"                     -> ArrayLiteral {cons("ArrayLiteral"), prefer}
-    "[" {ArrayElement ","}+ "]" -> ArrayLiteral {cons("Array")}
-    
-                         -> ArrayElement {cons("MissingElement")}
-    AssignmentExpression -> ArrayElement {cons("Element")}
-          
+	    "[" "]"                     -> ArrayLiteral {cons("Array"), prefer}
+	    "[" {ArrayElement ","}+ "]" -> ArrayLiteral {cons("Array")}
+	    
+	                         -> ArrayElement {cons("NoElement")}
+	    AssignmentExpression -> ArrayElement {cons("Element")}
+	          
     context-free syntax
       "{" {PropertyAssignment ","}* "}"     -> ObjectLiteral {cons("Object")}
       "{" {PropertyAssignment ","}* "," "}" -> ObjectLiteral {cons("Object")}
@@ -303,7 +302,7 @@ module ecmascript-51/Expressions
       P10Expression                    -> P9Expression
       P9Expression "==" P10Expression  -> P9Expression {cons("Equals")}
       P9Expression "!=" P10Expression  -> P9Expression {cons("NotEquals")}
-      P9Expression "===" P10Expression -> P9Expresson {cons("StrictEquals")}
+      P9Expression "===" P10Expression -> P9Expression {cons("StrictEquals")}
       P9Expression "!==" P10Expression -> P9Expression {cons("StrictNotEquals")}
  
       P9Expression                  -> P8Expression
@@ -343,14 +342,6 @@ module ecmascript-51/Expressions
       P1Expression "," P2Expression -> P1Expression {cons("Comma")}
 
       P1Expression -> Expression
-      
-    context-free syntax  
-      %% Some statements require expressions that exclude 'in' expressions
-      Expression           -> ExpressionNoIn
-      InExpression         -> ExpressionNoIn {reject}
-      AssignmentExpression -> AssignmentExpressionNoIn
-      InExpression         -> AssignmentExpressionNoIn {reject}
-      
            
     lexical restrictions
       "+" -/- [\+]
@@ -380,8 +371,18 @@ module ecmascript-51/Statements
       ";" -> Statement {cons("Empty")}   
       
       %% 12.4 Expression Statement
-      %% TODO: reject expressions starting with { or 'function'
-      Expression -> AutoSemiStatement {cons("Expression")}
+      %% Reject expressions starting with { or 'function'
+      %% This implementation resolves ambiguity but allows invalid JavaScript
+      %% e.g {}.x would parse as MemberAccess({}, x) but should be disallowed
+      %% A better implementation would be
+      %% RESTRICTEXPR Expression -> ...
+      %% -> RESTRICTEXPR
+      %% RESTRICTEXPR -/- [\{] | [f].[u].[n].[c].[t].[i].[o].[n].[\ \t\12\n\r]
+      %% But multichar restrictions are not currently supported
+      Expression -> ExpressionStatement
+      FunctionExpression -> ExpressionStatement {reject}
+      ObjectLiteral -> ExpressionStatement {reject}
+      ExpressionStatement -> AutoSemiStatement {cons("Expression")}
       
       %% 12.5 if Statement
       "if" "(" Expression ")" Statement                  -> Statement {cons("If"), prefer}
@@ -400,6 +401,12 @@ module ecmascript-51/Statements
       %% 12.6.4 for-in Statement
       "for" "(" LeftHandSideExpression "in" Expression ")" Statement -> Statement {cons("ForIn")}
       "for" "(" "var" VarDeclarationNoIn "in" Expression ")" Statement   -> Statement {cons("ForIn")}
+      
+      %% Special NoIn expression variants used by for and for-in statements
+      Expression           -> ExpressionNoIn
+      InExpression         -> ExpressionNoIn {reject}
+      AssignmentExpression -> AssignmentExpressionNoIn
+      InExpression         -> AssignmentExpressionNoIn {reject}
       
       %% 12.7 continue Statement
       "continue"            -> AutoSemiStatement {cons("Continue")}
@@ -422,7 +429,7 @@ module ecmascript-51/Statements
       "default" ":" Statement*                        -> CaseClause {cons("Default")}
       
       %% 12.12 Labelled Statements
-      Identifier ":" Statement -> Statement {cons("Label")}
+      Identifier ":" Statement -> Statement {cons("LabelledStatement")}
       
       %% 12.13 throw Statement
       "throw" Expression -> AutoSemiStatement {cons("Throw"), layout("1.first.line == 2.first.line")}
