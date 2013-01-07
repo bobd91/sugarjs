@@ -1,12 +1,11 @@
 definition
 
 %% TODO: 
-%%       NotIn
 %%       RegExp
 %%       No ExpStmt if '{' or 'function'
-%%       Tidy up cons
-%%       Rename productions
+%%       Rename productions -> JavaScript...
 %%       Hide productions ?
+%%       Ought to implement 'with' statement
 
 %% ECMA-262 ECMAScript 5.1
 %% Missing full Unicode support
@@ -30,12 +29,9 @@ module ecmascript-51/Layout
       "/*" (~[\*] | Asterisk)* "*/" -> LAYOUT
       [\*]                          -> Asterisk
 
-      -> EOF
-
     lexical restrictions
       CR -/- [\n]
       Asterisk -/- [\/]
-      EOF -/- ~[]
 
     context-free restrictions
       LAYOUT? -/- [\ \t\12\n\r] | [\/]/[\/] | [\/].[\*]
@@ -102,11 +98,12 @@ module ecmascript-51/Identifiers
 
       Keyword            -> ReservedWord
       FutureReservedWord -> ReservedWord
-      NullLiteral        -> ReservedWord
-      BooleanLiteral     -> ReservedWord
+      "null"             -> ReservedWord
+      "true"             -> ReservedWord
+      "false"            -> ReservedWord
       
       lexical restrictions
-        Keyword FutureReservedWord -/- [A-Za-z0-9\$\_]
+        ReservedWord -/- [A-Za-z0-9\$\_]
 
 %% 7.8 Literals        
 %% 7.8.1 Null Literals
@@ -118,28 +115,18 @@ module ecmascript-51/Literals
   exports
     
     context-free syntax
-    NullLiteral -> Literal
-    BooleanLiteral -> Literal
-    NumericLiteral -> Literal
-    StringLiteral -> Literal
-    %% RegularExpressionLiteral -> Literal
+      NullLiteral    -> Literal {cons("Null")}
+      BooleanLiteral -> Literal {cons("Boolean")}
+      NumericLiteral -> Literal {cons("Number")}
+      StringLiteral  -> Literal {cons("String")}
+      %% RegularExpressionLiteral -> Literal
       
-    lexical syntax
       "null"    -> NullLiteral
+      "true"    -> BooleanLiteral {cons("True")}
+      "false"   -> BooleanLiteral {cons("False")}
 
-    lexical restrictions
-      NullLiteral -/- [A-Za-z0-9\$\_]
-        
-    lexical syntax        
-      "true"    -> BooleanLiteral
-      "false"   -> BooleanLiteral
-
-    lexical restrictions
-      BooleanLiteral -/- [A-Za-z0-9\$\_]
-
-    context-free syntax
-      DecimalLiteral    -> NumericLiteral {cons("Num")}
-      HexIntegerLiteral -> NumericLiteral {cons("HexNum")}
+      DecimalLiteral    -> NumericLiteral {cons("Decimal")}
+      HexIntegerLiteral -> NumericLiteral {cons("HexInt")}
               
     lexical syntax
       "0"         -> DecimalIntegerLiteral
@@ -147,11 +134,11 @@ module ecmascript-51/Literals
       
       
       DecimalIntegerLiteral "." [0-9]* ExponentPart? -> DecimalLiteral
-      "." [0-9]+ ExponentPart? -> DecimalLiteral
-      DecimalIntegerLiteral ExponentPart? -> DecimalLiteral
+      "." [0-9]+ ExponentPart?                       -> DecimalLiteral
+      DecimalIntegerLiteral ExponentPart?            -> DecimalLiteral
       
       [eE] SignedInteger -> ExponentPart
-      [\+\-]? [0-9]+ -> SignedInteger
+      [\+\-]? [0-9]+     -> SignedInteger
       
       [0][xX][0-9a-fA-F]+ -> HexIntegerLiteral
       
@@ -160,24 +147,24 @@ module ecmascript-51/Literals
       HexIntegerLiteral -/- [0-9a-fA-F]
         
     context-free syntax
-      DoubleQuotedString   -> StringLiteral {cons("DoubleQuotedString")}
+      DoubleQuotedString  -> StringLiteral {cons("DoubleQuotedString")}
       SingleQuotedString  -> StringLiteral {cons("SingleQuotedString")}
         
     lexical syntax
-      "\"" DoubleStringChar* "\""   -> DoubleQuotedString
-      "'" SingleStringChar* "'"  -> SingleQuotedString
+      "\"" DoubleStringChar* "\"" -> DoubleQuotedString
+      "'" SingleStringChar* "'"   -> SingleQuotedString
 
-      ~[\"\\\r\n] -> DoubleStringChar
-      [\\] EscapeSequence -> DoubleStringChar
+      ~[\"\\\r\n]                 -> DoubleStringChar
+      [\\] EscapeSequence         -> DoubleStringChar
       [\\] LineTerminatorSequence -> DoubleStringChar
       
-      ~[\'\\\r\n] -> SingleStringChar
-      [\\] EscapeSequence -> SingleStringChar
+      ~[\'\\\r\n]                 -> SingleStringChar
+      [\\] EscapeSequence         -> SingleStringChar
       [\\] LineTerminatorSequence -> SingleStringChar
       
-      Zero -> EscapeSequence
-      ~[0-9xu\r\n] -> EscapeSequence
-      [x][0-9a-fA-F][0-9a-fA-F] -> EscapeSequence
+      Zero                                            -> EscapeSequence
+      ~[0-9xu\r\n]                                    -> EscapeSequence
+      [x][0-9a-fA-F][0-9a-fA-F]                       -> EscapeSequence
       [u][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F] -> EscapeSequence
       
       [0] -> Zero
@@ -186,172 +173,189 @@ module ecmascript-51/Literals
       Zero -/- [0-9]
         
 %% 7.9 Automatic Semicolon Insertion
-%% All {} enclosed statement lists should use OpenBlock and CloseBlock rather than "{" and "}"
-%% Any statement that supports auto semicolon insertion should -> AutoSemiStatement 
+%% Any statement that requires auto semicolon insertion should -> AutoSemiStatement 
 %% Other statements should -> Statement
 module ecmascript-51/AutoSemiInsertion
   exports
    
     context-free syntax 
-      "{" -> OpenBlock {cons("OpenBlk")}
-      "}" -> CloseBlock {cons("CloseBlk")}
-      AutoSemiStatement "}" -> CloseBlock {cons("AutoCloseBlk"), layout("1.last.line==2.first.line")}
-
-      SemiStatement -> Statement {longest-match}
+      SemiStatement         -> Statement {longest-match}
 
       AutoSemiStatement ";" -> SemiStatement {cons("SemiStm")}
-      AutoSemiStatement LAYOUT? -> SemiStatement {cons("AutoStm"), enforce-newline}
-      AutoSemiStatement EOF -> SemiStatement {cons("EOFStm"), avoid}
+      
+      %% These all have empty final productions to have to be careful about ambiguity
+      %% NLStm - statement without semicolon followed by newline
+      %% EOFStm - statement without semicolon followed by End of File, no newline
+      %% EOBStm - statement without semicolon followed by } before any newline
+      AutoSemiStatement NL  -> SemiStatement {cons("NLStm"), enforce-newline, prefer}
+      AutoSemiStatement EOF -> SemiStatement {cons("EOFStm")}
+      AutoSemiStatement EOB -> SemiStatement {cons("EOBStm"), avoid}
+      
+    lexical syntax
+      -> NL
+      -> EOB 
+      -> EOF
+      
+    lexical restrictions
+      EOB -/- ~[\}]
+      EOF -/- ~[]
  
 %% 11 Expressions
 module ecmascript-51/Expressions
   exports
    
+    %% Using priorities is a useful way to describe operator precedence but does not make
+    %% it easy to specify precedence of new operators, the extending code would have to use
+    %% productions from the original grammar 
+    %% Naming expression productions P1Expression, P2Expression and so on is not so neat
+    %% but will make it easier to specify the precedence of a new operator    
     context-free syntax
       %% 11.1 Primary Expressions
-      "this" -> PrimaryExpression {cons("ThisExpr")}
-      Identifier -> PrimaryExpression {cons("IdExpr")}
-      Literal -> PrimaryExpression {cons("LitExpr")}
-      ArrayLiteral -> PrimaryExpression {cons("ArrLitExpr")}
-      ObjectLiteral -> PrimaryExpression {cons("ObjLitExpr")}
-      "(" Expression ")" -> PrimaryExpression {cons("ParenExpr")}
+      "this"             -> P19Expression {cons("This")}
+      Identifier         -> P19Expression
+      Literal            -> P19Expression
+      ArrayLiteral       -> P19Expression
+      ObjectLiteral      -> P19Expression
+      "(" Expression ")" -> P19Expression {cons("Paren")}
       
-     "[" Comma* "]" -> ArrayLiteral {cons("ArrayLiteral")}
-     "[" Comma* ElementList Comma* "]" -> ArrayLiteral {cons("ArrayLiteral")}
-     AssignmentExpression -> ElementList {cons("ElementList")}
-     ElementList Comma+ AssignmentExpression -> ElementList {cons("ElementList")}
-      
-    lexical syntax
-      "," -> Comma   
-
+    "[" "]"                     -> ArrayLiteral {cons("ArrayLiteral"), prefer}
+    "[" {ArrayElement ","}+ "]" -> ArrayLiteral {cons("Array")}
+    
+                         -> ArrayElement {cons("MissingElement")}
+    AssignmentExpression -> ArrayElement {cons("Element")}
+          
     context-free syntax
-      "{" {PropertyAssignment ","}* "}" -> ObjectLiteral {cons("ObjectLiteral")}
-      "{" {PropertyAssignment ","}* "," "}" -> ObjectLiteral {cons("ObjectLiteral")}
-      PropertyName ":" AssignmentExpression -> PropertyAssignment {cons("PropertyAssignment")}
-      "get" PropertyName "(" ")" FunctionBodyBlock -> PropertyAssignment {cons("PropertyGet")}
-      "set" PropertyName "(" Identifier ")" FunctionBodyBlock -> PropertyAssignment {cons("PropertySet")}
+      "{" {PropertyAssignment ","}* "}"     -> ObjectLiteral {cons("Object")}
+      "{" {PropertyAssignment ","}* "," "}" -> ObjectLiteral {cons("Object")}
+      
+      PropertyName ":" AssignmentExpression                      -> PropertyAssignment {cons("PropertyAssignment")}
+      "get" PropertyName "(" ")" "{" FunctionBody "}"            -> PropertyAssignment {cons("PropertyGet")}
+      "set" PropertyName "(" Identifier ")" "{" FunctionBody "}" -> PropertyAssignment {cons("PropertySet")}
+      
       IdentifierName -> PropertyName
-      StringLiteral -> PropertyName
+      StringLiteral  -> PropertyName
       NumericLiteral -> PropertyName
       
     context-free syntax
       %% 11.2 Left Hand Side Expressions
-      PrimaryExpression -> MemberExpression
-      FunctionExpression -> MemberExpression
-      MemberExpression "[" Expression "]" -> MemberExpression {cons("MbrIndex")}
-      MemberExpression "." IdentifierName -> MemberExpression {cons("MbrMbr")}
-      "new" MemberExpression Arguments -> MemberExpression {cons("NewMbr")}
+      P19Expression                    -> P18Expression
+      FunctionExpression               -> P18Expression
+      P18Expression "[" Expression "]" -> P18Expression {cons("ArrayAccess")}
+      P18Expression "." MemberName     -> P18Expression {cons("MemberAccess")}
+      "new" P18Expression Arguments    -> P18Expression {cons("NewArgs")}
 
-      MemberExpression -> NewExpression
-      "new"+ MemberExpression -> NewExpression {cons("NewExp")}
+      P18Expression         -> P17aExpression
+      "new"+ P17aExpression -> P17aExpression {cons("New")}
 
-      MemberExpression Arguments -> CallExpression {cons("CallArgs")}
-      CallExpression Arguments -> CallExpression {cons("CallArgs")}
-      CallExpression "[" Expression "]" -> CallExpression {cons("CallIndex")}
-      CallExpression "." IdentifierName -> CallExpression {cons("CallMbr")}        
+      P18Expression Arguments           -> P17bExpression {cons("Call")}
+      P17bExpression Arguments          -> P17bExpression {cons("Call")}
+      P17bExpression "[" Expression "]" -> P17bExpression {cons("ArrayAccess")}
+      P17bExpression "." MemberName     -> P17bExpression {cons("MemberAccess")}        
       
       "(" {AssignmentExpression ","}* ")" -> Arguments {cons("Args")}
-
-      NewExpression -> LeftHandSideExpression {cons("LHS")}
-      CallExpression -> LeftHandSideExpression {cons("LHS")}    
-
-      LeftHandSideExpression -> Expression
-          
-    context-free priorities
-    {right:  
-      Expression "++" -> Expression {cons("PostInc"), layout("1.last.line==2.first.line")}
-      Expression "--" -> Expression {cons("PostDec"), layout("1.last.line==2.first.line")} 
-    }
-    >
-    {
-      "delete" Expression -> Expression {cons("Delete")}
-      "void" Expression -> Expression {cons("Void")}
-      "typeof" Expression -> Expression {cons("Typeof")}
-      "++" Expression -> Expression {cons("PreInc")}
-      "--" Expression -> Expression {cons("PreDec")}
-      "+" Expression -> Expression {cons("UnaryPlus")}
-      "-" Expression -> Expression {cons("UnaryMinus")}
-      "~" Expression -> Expression {cons("BitNot")}
-      "!" Expression -> Expression {cons("Not")}
-    }
-    >
-    {left:
-      Expression "*" Expression -> Expression {cons("Times")}
-      Expression "/" Expression -> Expression {cons("Divide")}
-      Expression "%" Expression -> Expression {cons("Remainder")} 
-    }
-    >
-    {left:
-      Expression "+" Expression -> Expression {cons("Plus")}
-      Expression "-" Expression -> Expression {cons("Minus")}
-    }
-    >
-    {left:
-      Expression "<<" Expression -> Expression {cons("LeftShift")}
-      Expression ">>" Expression -> Expression {cons("SignRightShift")}
-      Expression ">>>" Expression -> Expression {cons("NoSignRightShift")}
-    }
-    >
-    {left:
-      Expression "<" Expression -> Expression {cons("LessThan")}
-      Expression ">" Expression -> Expression {cons("GreaterThan")}
-      Expression "<=" Expression -> Expression {cons("LessEquals")}
-      Expression "<=" Expression -> Expression {cons("GreateEquals")}
-      Expression "instanceof" Expression -> Expression {cons("InstanceOf")}
-      Expression "in" Expression -> InExpression {cons("In")}
-      InExpression -> Expression 
-    }
-    >
-    {left:
-      Expression "==" Expression -> Expression {cons("Equals")}
-      Expression "!=" Expression -> Expression {cons("NotEquals")}
-      Expression "===" Expression -> Expresson {cons("StrictEquals")}
-      Expression "!==" Expression -> Expression {cons("StrictNotEquals")}
-    }
-    >
-      Expression "&" Expression -> Expression {left,cons("BitAnd")}
-    >
-      Expression "^" Expression -> Expression {left,cons("BitXor")}
-    >
-      Expression "|" Expression -> Expression {left,cons("BitOr")}
-    >
-      Expression "&&" Expression -> Expression {left,cons("And")}
-    >
-      Expression "||" Expression -> Expression {left,cons("Or")}
-    >
-      Expression CondMid Expression -> Expression {right, cons("Cond")}
-    >
-    {right:
-      LeftHandSideExpression "=" Expression -> Expression {cons("Assign")}
-      LeftHandSideExpression "*=" Expression -> Expression {cons("AssignMul")}
-      LeftHandSideExpression "/=" Expression -> Expression {cons("AssignDiv")}
-      LeftHandSideExpression "%=" Expression -> Expression {cons("AssignRem")}
-      LeftHandSideExpression "+=" Expression -> Expression {cons("AssignPlus")}
-      LeftHandSideExpression "-=" Expression -> Expression {cons("AssignMinus")}
-      LeftHandSideExpression "<<=" Expression -> Expression {cons("AssignLeftShift")}
-      LeftHandSideExpression ">>=" Expression -> Expression {cons("AssignSRightShift")}
-      LeftHandSideExpression ">>>=" Expression -> Expression {cons("AssignURightShift")}
-      LeftHandSideExpression "&=" Expression -> Expression {cons("AssignAnd")}
-      LeftHandSideExpression "^=" Expression -> Expression {cons("AssignXor")}
-      LeftHandSideExpression "|=" Expression -> Expression {cons("AssignOr")}
-    }
-    >
-      Expression -> AssignmentExpression
-    >
-      Expression "," Expression -> Expression {left, cons("Comma")}
-
-    context-free syntax  
-      Expression -> ExpressionNoIn
-      InExpression -> ExpressionNoIn {reject}
-      AssignmentExpression -> AssignmentExpressionNoIn
-      InExpression -> AssignmentExpressionNoIn {reject}
       
-      "?" Expression ":" -> CondMid{bracket}
+      IdentifierName -> MemberName {cons("MemberName")}
+
+      P17aExpression -> P16Expression
+      P17bExpression -> P16Expression    
+
+      P16Expression -> LeftHandSideExpression
+      
+      P16Expression      -> P15Expression    
+      P16Expression "++" -> P15Expression {cons("PostInc"), layout("1.last.line==2.first.line")}
+      P16Expression "--" -> P15Expression {cons("PostDec"), layout("1.last.line==2.first.line")} 
+ 
+      P15Expression          -> P14Expression
+      "delete" P15Expression -> P14Expression {cons("Delete")}
+      "void" P15Expression   -> P14Expression {cons("Void")}
+      "typeof" P15Expression -> P14Expression {cons("Typeof")}
+      "++" P15Expression     -> P14Expression {cons("PreInc")}
+      "--" P15Expression     -> P14Expression {cons("PreDec")}
+      "+" P15Expression      -> P14Expression {cons("UnaryPlus")}
+      "-" P15Expression      -> P14Expression {cons("UnaryMinus")}
+      "~" P15Expression      -> P14Expression {cons("BitNot")}
+      "!" P15Expression      -> P14Expression {cons("Not")}
+ 
+      P14Expression                   -> P13Expression
+      P13Expression "*" P14Expression -> P13Expression {cons("Times")}
+      P13Expression "/" P14Expression -> P13Expression {cons("Divide")}
+      P13Expression "%" P14Expression -> P13Expression {cons("Remainder")} 
+ 
+      P13Expression                   -> P12Expression
+      P12Expression "+" P13Expression -> P12Expression {cons("Plus")}
+      P12Expression "-" P13Expression -> P12Expression {cons("Minus")}
+ 
+      P12Expression                     -> P11Expression
+      P11Expression "<<" P12Expression  -> P11Expression {cons("LeftShift")}
+      P11Expression ">>" P12Expression  -> P11Expression {cons("RightShift")}
+      P11Expression ">>>" P12Expression -> P11Expression {cons("URightShift")}
+ 
+      P11Expression                            -> P10Expression
+      P10Expression "<" P11Expression          -> P10Expression {cons("LessThan")}
+      P10Expression ">" P11Expression          -> P10Expression {cons("GreaterThan")}
+      P10Expression "<=" P11Expression         -> P10Expression {cons("LessEquals")}
+      P10Expression "<=" P11Expression         -> P10Expression {cons("GreateEquals")}
+      P10Expression "instanceof" P11Expression -> P10Expression {cons("InstanceOf")}
+      %% Keep track of in expressions as required elsewhere
+      P10Expression "in" P11Expression         -> InExpression {cons("In")}
+      InExpression                             -> P10Expression 
+ 
+      P10Expression                    -> P9Expression
+      P9Expression "==" P10Expression  -> P9Expression {cons("Equals")}
+      P9Expression "!=" P10Expression  -> P9Expression {cons("NotEquals")}
+      P9Expression "===" P10Expression -> P9Expresson {cons("StrictEquals")}
+      P9Expression "!==" P10Expression -> P9Expression {cons("StrictNotEquals")}
+ 
+      P9Expression                  -> P8Expression
+      P8Expression "&" P9Expression -> P8Expression {cons("BitAnd")}
+ 
+      P8Expression                  -> P7Expression
+      P7Expression "^" P8Expression -> P7Expression {cons("BitXor")}
+ 
+      P7Expression                  -> P6Expression
+      P6Expression "|" P7Expression -> P6Expression {cons("BitOr")}
+ 
+      P6Expression                   -> P5Expression
+      P5Expression "&&" P6Expression -> P5Expression {cons("And")}
+ 
+      P5Expression                   -> P4Expression
+      P4Expression "||" P5Expression -> P5Expression {cons("Or")}
+ 
+      P4Expression                                   -> P3Expression
+      P4Expression "?" P2Expression ":" P2Expression -> P3Expression {cons("Cond")}
+ 
+      P3Expression                               -> P2Expression
+      LeftHandSideExpression "=" P2Expression    -> P2Expression {cons("Assign")}
+      LeftHandSideExpression "*=" P2Expression   -> P2Expression {cons("AssignMul")}
+      LeftHandSideExpression "/=" P2Expression   -> P2Expression {cons("AssignDiv")}
+      LeftHandSideExpression "%=" P2Expression   -> P2Expression {cons("AssignRem")}
+      LeftHandSideExpression "+=" P2Expression   -> P2Expression {cons("AssignPlus")}
+      LeftHandSideExpression "-=" P2Expression   -> P2Expression {cons("AssignMinus")}
+      LeftHandSideExpression "<<=" P2Expression  -> P2Expression {cons("AssignLeftShift")}
+      LeftHandSideExpression ">>=" P2Expression  -> P2Expression {cons("AssignRightShift")}
+      LeftHandSideExpression ">>>=" P2Expression -> P2Expression {cons("AssignURightShift")}
+      LeftHandSideExpression "&=" P2Expression   -> P2Expression {cons("AssignAnd")}
+      LeftHandSideExpression "^=" P2Expression   -> P2Expression {cons("AssignXor")}
+      LeftHandSideExpression "|=" P2Expression   -> P2Expression {cons("AssignOr")}
+      P2Expression                               -> AssignmentExpression
+
+      P2Expression                  -> P1Expression 
+      P1Expression "," P2Expression -> P1Expression {cons("Comma")}
+
+      P1Expression -> Expression
+      
+    context-free syntax  
+      %% Some statements require expressions that exclude 'in' expressions
+      Expression           -> ExpressionNoIn
+      InExpression         -> ExpressionNoIn {reject}
+      AssignmentExpression -> AssignmentExpressionNoIn
+      InExpression         -> AssignmentExpressionNoIn {reject}
+      
            
     lexical restrictions
-	    "+" -/- [\+]
-	    "-" -/- [\-]
-	    "/" -/- [\/]
+      "+" -/- [\+]
+      "-" -/- [\-]
+      "/" -/- [\/]
       
 %% 12 Statements
 module ecmascript-51/Statements
@@ -359,85 +363,91 @@ module ecmascript-51/Statements
     
     context-free syntax
       %% 12.1 Block
-      Block -> Statement
-    	OpenBlock Statement* CloseBlock -> Block {cons("Block")}
+      "{" Statement* "}" -> Block {cons("Block")}
+      Block              -> Statement
       
       %% 12.2 Variable statement
-      "var" {VarDeclaration ","}+ -> AutoSemiStatement {cons("VarStm")}
-      Identifier Initialiser? -> VarDeclaration {cons("VarDec")}
-      "=" AssignmentExpression -> Initialiser {cons("VarInit")}
+      "var" {VarDeclaration ","}+  -> AutoSemiStatement {cons("Var")}
+      Identifier                   -> VarDeclaration {cons("VarDec")}
+      Identifier Initialiser       -> VarDeclaration {cons("VarDecInit")}
+      "=" AssignmentExpression     -> Initialiser {cons("Init")}
+      %% NoIn variants required by 'for' statements
+      Identifier                   -> VarDeclarationNoIn {cons("VarDec")}
+      Identifier InitialiserNoIn   -> VarDeclarationNoIn {cons("VarDecInit")}
+      "=" AssignmentExpressionNoIn -> InitialiserNoIn {cons("Init")}
       
       %% 12.3 Empty Statement
-      ";" -> Statement {cons("EmptyStm")}   
+      ";" -> Statement {cons("Empty")}   
       
       %% 12.4 Expression Statement
       %% TODO: reject expressions starting with { or 'function'
-      Expression -> AutoSemiStatement {cons("ExprStm")}
+      Expression -> AutoSemiStatement {cons("Expression")}
       
       %% 12.5 if Statement
-      "if" "(" Expression ")" Statement -> Statement {cons("IfStm"), prefer}
-      "if" "(" Expression ")" Statement "else" Statement -> Statement {cons("IfElseStm")}
+      "if" "(" Expression ")" Statement                  -> Statement {cons("If"), prefer}
+      "if" "(" Expression ")" Statement "else" Statement -> Statement {cons("IfElse")}
       
       %% 12.6.1 do-while Statement
-      "do" Statement "while" "(" Expression ")" -> AutoSemiStatement {cons("DoStm")}
+      "do" Statement "while" "(" Expression ")" -> AutoSemiStatement {cons("Do")}
       
       %% 12.6.2 while Statement
-      "while" "(" Expression ")" Statement -> Statement {cons("WhileStm")}
+      "while" "(" Expression ")" Statement -> Statement {cons("While")}
       
       %% 12.6.3 for Statement
-      %% TODO: no-in handling
-      "for" "(" Expression? ";" Expression? ";" Expression? ")" Statement -> Statement {cons("ForSmt")}
-      "for" "(" "var" {VarDeclaration ","}+ ";" Expression? ";" Expression? ")" Statement -> Statement {cons("ForSmt")}
+      "for" "(" ExpressionNoIn? ";" Expression? ";" Expression? ")" Statement                 -> Statement {cons("For")}
+      "for" "(" "var" {VarDeclarationNoIn ","}+ ";" Expression? ";" Expression? ")" Statement -> Statement {cons("For")}
       
       %% 12.6.4 for-in Statement
-      %% TODO: no-in handling
-      "for" "(" LeftHandSideExpression "in" Expression ")" Statement -> Statement {cons("ForInStm")}
-      "for" "(" "var" VarDeclaration "in" Expression ")" Statement -> Statement {cons("ForInStm")}
+      "for" "(" LeftHandSideExpression "in" Expression ")" Statement -> Statement {cons("ForIn")}
+      "for" "(" "var" VarDeclarationNoIn "in" Expression ")" Statement   -> Statement {cons("ForIn")}
       
       %% 12.7 continue Statement
-      "continue" -> AutoSemiStatement {cons("ContinueStm")}
-      "continue" Identifier -> AutoSemiStatement {cons("ContinueStm"), layout("1.first.line == 2.first.line")}
+      "continue"            -> AutoSemiStatement {cons("Continue")}
+      "continue" Identifier -> AutoSemiStatement {cons("Continue"), layout("1.first.line == 2.first.line")}
       
       %% 12.8 break Statement
-      "break" -> AutoSemiStatement {cons("BreakStm")}
-      "break" Identifier -> AutoSemiStatement {cons("BreakStm"), layout("1.first.line == 2.first.line")}
+      "break"            -> AutoSemiStatement {cons("Break")}
+      "break" Identifier -> AutoSemiStatement {cons("Break"), layout("1.first.line == 2.first.line")}
       
       %% 12.9 return Statement
-      "return" -> AutoSemiStatement {cons("ReturnStm")}
-      "return" Expression -> AutoSemiStatement {cons("ReturnStm"), layout("1.first.line == 2.first.line")}
+      "return"            -> AutoSemiStatement {cons("Return")}
+      "return" Expression -> AutoSemiStatement {cons("Return"), layout("1.first.line == 2.first.line")}
      
       %% 12.10 with Statement
       %% Not implemented, considered dangerous
 
       %% 12.11 switch Statement
-      "switch" "(" Expression ")" CaseBlock -> Statement {cons("SwitchStm")}
-      OpenBlock CaseClause* CloseBlock -> CaseBlock {cons("CaseBlock")}
-      "case" Expression ":" Statement* -> CaseClause {cons("Case")}
-      "default" ":" Statement* -> CaseClause {cons("Default")}
+      "switch" "(" Expression ")" "{" CaseClause* "}" -> Statement {cons("Switch")}
+      "case" Expression ":" Statement*                -> CaseClause {cons("Case")}
+      "default" ":" Statement*                        -> CaseClause {cons("Default")}
       
       %% 12.12 Labelled Statements
-      Identifier ":" Statement -> Statement {cons("LabelledStm")}
+      Identifier ":" Statement -> Statement {cons("Label")}
       
       %% 12.13 throw Statement
-      "throw" Expression -> AutoSemiStatement {cons("ThrowStm"), layout("1.first.line == 2.first.line")}
+      "throw" Expression -> AutoSemiStatement {cons("Throw"), layout("1.first.line == 2.first.line")}
       
       %% 12.14 try Statement
-      "try" Block Catch? Finally? -> Statement {cons("TryStm")}
+      "try" Block Catch                -> Statement {cons("TryCatch")}
+      "try" Block Finally              -> Statement {cons("TryFinally")}
+      "try" Block Catch Finally        -> Statement {cons("TryCatchFinally")}
       "catch" "(" Identifier ")" Block -> Catch {cons("Catch")}
-      "finally" Block -> Finally {cons("Finally")}
+      "finally" Block                  -> Finally {cons("Finally")}
 
       %% 12.15 debugger Statement
-      "debugger" -> Statement {cons("DebuggerStm")}
+      "debugger" -> Statement {cons("Debugger")}
       
 %% 13 Function Declaration
 module ecmascript-51/Functions
   exports
 
     context-free syntax
-      "function" Identifier "(" {Identifier ","}* ")" FunctionBodyBlock -> FunctionDeclaration {cons("FunDec")}
-      "function" Identifier? "(" {Identifier ","}* ")" FunctionBodyBlock -> FunctionExpression {cons("FunExp")}
+      "function" Identifier "(" {Identifier ","}* ")" "{" FunctionBody "}" -> FunctionDeclaration {cons("Function")}
       
-      OpenBlock SourceElement* CloseBlock -> FunctionBodyBlock {cons("FnBody")}
+      FunctionDeclaration                                       -> FunctionExpression
+      "function" "(" {Identifier ","}* ")" "{" FunctionBody "}" -> FunctionExpression {cons("Lambda")}
+      
+      SourceElement* -> FunctionBody {cons("FunctionBody")}
    
 %% 14 Program
 module ecmascript-51/Program
@@ -449,8 +459,8 @@ module ecmascript-51/Program
     context-free syntax
       SourceElement* -> Program {cons("Program")}
 
-      Statement -> SourceElement
       FunctionDeclaration -> SourceElement
+      Statement           -> SourceElement
  
 module ECMAScript-51
 imports
