@@ -1,62 +1,187 @@
-module org/sugarj/languages/JavaScript
+module JavaScript-51
 
 signature
   constructors
-                       : FunctionDeclaration -> SourceElement
-                       : Statement -> SourceElement
-    SrcElems           : List(SourceElement) * Option(AutoSemiStatement) -> SourceElements
-    Program            : SourceElements -> Program
-    FunBody            : SourceElements -> FunctionBody
-    FunDec             : Identifier * List(Identifier) * FunctionBody -> FunctionDeclaration
-    AutoSemi           : AutoSemiStatement * LineTerminatorSequence -> SemiStatement
-    WithSemi           : AutoSemiStatement -> SemiStatement
-    Finally            : Block -> Finally
-    Catch              : Identifier * Block -> Catch
-    CaseClauseBlock    : List(CaseClause) * Option(AutoSemiStatement) -> CaseClauseBlock
-    Default            : List(Statement) -> CaseClause
-    Case               : Expression * List(Statement) -> CaseClause
-    CaseBlock          : CaseClauseBlock -> CaseBlock
-    VarInit            : AssignmentExpression -> Initialiser
-    VarDec             : Identifier * Option(Initialiser) -> VarDeclaration
-    ThrowStm           : Expression -> AutoSemiStatement
-    ReturnStm          : Expression -> AutoSemiStatement
-    ReturnStm          : AutoSemiStatement
-    BreakStm           : Identifier -> AutoSemiStatement
-    BreakStm           : AutoSemiStatement
-    ContinueStm        : Identifier -> AutoSemiStatement
-    ContinueStm        : AutoSemiStatement
-    DoStm              : Statement * Expression -> AutoSemiStatement
-    ExprStm            : Expression -> AutoSemiStatement
-    VarStm             : List(VarDeclaration) -> AutoSemiStatement
-    StatementBlock     : List(Statement) * Option(AutoSemiStatement) -> StatementBlock
-    Block              : StatementBlock -> Block
-                       : SemiStatement -> Statement
-    DebuggerStm        : Statement
-    TryStm             : Block * Option(Catch) * Option(Finally) -> Statement
-    LabelledStm        : Identifier * Statement -> Statement
-    SwitchStm          : Expression * CaseBlock -> Statement
-    ForInStm           : VarDeclaration * Expression * Statement -> Statement
-    ForInStm           : LHSExpression * Expression * Statement -> Statement
-    ForSmt             : List(VarDeclaration) * Option(Expression) * Option(Expression) * Statement -> Statement
-    ForSmt             : Option(Expression) * Option(Expression) * Option(Expression) * Statement -> Statement
-    WhileStm           : Expression * Statement -> Statement
-    IfStm              : Expression * Statement * Statement -> Statement
-    IfStm              : Expression * Statement -> Statement
-    EmptyStm           : Statement
-    BlockStm           : Block -> Statement
-                       : Expression -> AssignmentExpression
-                       : Identifier -> LHSExpression
-    StringLiteral      : StringLiteral -> Expression
-    NumericLiteral     : NumericLiteral -> Expression
-    Identifier         : Identifier -> Expression
-    SingleQuotedString : List(SingleStringChar) -> StringLiteral
-    DoubleQuotedString : List(DoubleStringChar) -> StringLiteral
-                       : String -> SingleStringChar
-                       : String -> DoubleStringChar
-                       : String -> LineTerminatorSequence
-    HexNum             : HexIntegerLiteral -> NumericLiteral
-    Num                : DecimalLiteral -> NumericLiteral
+    Identifier         : IdentifierName -> Identifier
+                       : String -> IdentifierName
+                       : String -> RegExpLiteral
+    SingleQuotedString : SingleQuotedString -> StringLiteral
+    DoubleQuotedString : DoubleQuotedString -> StringLiteral
+                       : String -> SingleQuotedString
+                       : String -> DoubleQuotedString
                        : String -> HexIntegerLiteral
                        : String -> DecimalLiteral
-    Id                 : Id -> Identifier
-                       : String -> Id
+    HexInt             : HexIntegerLiteral -> NumericLiteral
+    Decimal            : DecimalLiteral -> NumericLiteral
+    False              : BooleanLiteral
+    True               : BooleanLiteral
+    RegExp             : RegExpLiteral -> Literal
+    String             : StringLiteral -> Literal
+    Number             : NumericLiteral -> Literal
+    Boolean            : BooleanLiteral -> Literal
+    EOBStm             : AutoSemiStatement * EOB -> SemiStatement
+    EOFStm             : AutoSemiStatement * EOF -> SemiStatement
+    NLStm              : AutoSemiStatement * NL -> SemiStatement
+    SemiStm            : AutoSemiStatement -> SemiStatement
+                       : String -> EOF
+                       : String -> EOB
+                       : String -> NL
+                       : P1Expression -> Expression
+    Comma              : P1Expression * P2Expression -> P1Expression
+                       : P2Expression -> P1Expression
+                       : P2Expression -> AssignmentExpression
+    AssignOr           : LeftHandSideExpression * P2Expression -> P2Expression
+    AssignXor          : LeftHandSideExpression * P2Expression -> P2Expression
+    AssignAnd          : LeftHandSideExpression * P2Expression -> P2Expression
+    AssignURightShift  : LeftHandSideExpression * P2Expression -> P2Expression
+    AssignRightShift   : LeftHandSideExpression * P2Expression -> P2Expression
+    AssignLeftShift    : LeftHandSideExpression * P2Expression -> P2Expression
+    AssignMinus        : LeftHandSideExpression * P2Expression -> P2Expression
+    AssignPlus         : LeftHandSideExpression * P2Expression -> P2Expression
+    AssignRem          : LeftHandSideExpression * P2Expression -> P2Expression
+    AssignDiv          : LeftHandSideExpression * P2Expression -> P2Expression
+    AssignMul          : LeftHandSideExpression * P2Expression -> P2Expression
+    Assign             : LeftHandSideExpression * P2Expression -> P2Expression
+                       : P3Expression -> P2Expression
+    Cond               : P4Expression * P2Expression * P2Expression -> P3Expression
+                       : P4Expression -> P3Expression
+                       : P5Expression -> P4Expression
+    Or                 : P4Expression * P5Expression -> P5Expression
+    And                : P5Expression * P6Expression -> P5Expression
+                       : P6Expression -> P5Expression
+    BitOr              : P6Expression * P7Expression -> P6Expression
+                       : P7Expression -> P6Expression
+    BitXor             : P7Expression * P8Expression -> P7Expression
+                       : P8Expression -> P7Expression
+    BitAnd             : P8Expression * P9Expression -> P8Expression
+                       : P9Expression -> P8Expression
+    StrictNotEquals    : P9Expression * P10Expression -> P9Expression
+    StrictEquals       : P9Expression * P10Expression -> P9Expression
+    NotEquals          : P9Expression * P10Expression -> P9Expression
+    Equals             : P9Expression * P10Expression -> P9Expression
+                       : P10Expression -> P9Expression
+    In                 : P10Expression * P11Expression -> InExpression
+                       : InExpression -> P10Expression
+    InstanceOf         : P10Expression * P11Expression -> P10Expression
+    LessEquals         : P10Expression * P11Expression -> P10Expression
+    GreaterThan        : P10Expression * P11Expression -> P10Expression
+    LessThan           : P10Expression * P11Expression -> P10Expression
+                       : P11Expression -> P10Expression
+    URightShift        : P11Expression * P12Expression -> P11Expression
+    RightShift         : P11Expression * P12Expression -> P11Expression
+    LeftShift          : P11Expression * P12Expression -> P11Expression
+                       : P12Expression -> P11Expression
+    Minus              : P12Expression * P13Expression -> P12Expression
+    Plus               : P12Expression * P13Expression -> P12Expression
+                       : P13Expression -> P12Expression
+    Remainder          : P13Expression * P14Expression -> P13Expression
+    Divide             : P13Expression * P14Expression -> P13Expression
+    Times              : P13Expression * P14Expression -> P13Expression
+                       : P14Expression -> P13Expression
+    Not                : P15Expression -> P14Expression
+    BitNot             : P15Expression -> P14Expression
+    UnaryMinus         : P15Expression -> P14Expression
+    UnaryPlus          : P15Expression -> P14Expression
+    PreDec             : P15Expression -> P14Expression
+    PreInc             : P15Expression -> P14Expression
+    Typeof             : P15Expression -> P14Expression
+    Void               : P15Expression -> P14Expression
+    Delete             : P15Expression -> P14Expression
+                       : P15Expression -> P14Expression
+    PostDec            : P16Expression -> P15Expression
+    PostInc            : P16Expression -> P15Expression
+                       : P16Expression -> P15Expression
+                       : P16Expression -> LeftHandSideExpression
+                       : P18Expression -> P16Expression
+                       : P17Expression -> P16Expression
+    MemberName         : IdentifierName -> MemberName
+    Args               : List(AssignmentExpression) -> Arguments
+    MemberAccess       : P17Expression * MemberName -> P17Expression
+    ArrayAccess        : P17Expression * Expression -> P17Expression
+    Call               : P17Expression * Arguments -> P17Expression
+    Call               : P19Expression * Arguments -> P17Expression
+    New                : P18Expression -> P18Expression
+                       : P19Expression -> P18Expression
+    NewArgs            : P19Expression * Arguments -> P19Expression
+    MemberAccess       : P19Expression * MemberName -> P19Expression
+    ArrayAccess        : P19Expression * Expression -> P19Expression
+                       : FunctionExpression -> P19Expression
+                       : P20Expression -> P19Expression
+                       : NumericLiteral -> PropertyName
+                       : StringLiteral -> PropertyName
+                       : IdentifierName -> PropertyName
+    PropertySet        : PropertyName * Identifier * FunctionBody -> PropertyAssignment
+    PropertyGet        : PropertyName * FunctionBody -> PropertyAssignment
+    PropertyAssignment : PropertyName * AssignmentExpression -> PropertyAssignment
+    Object             : List(PropertyAssignment) -> ObjectLiteral
+    Element            : AssignmentExpression -> ArrayElement
+    EmptyElement       : ArrayElement
+    Array              : List(ArrayElement) -> ArrayLiteral
+    Array              : ArrayLiteral
+                       : Expression -> P20Expression
+                       : ObjectLiteral -> P20Expression
+                       : ArrayLiteral -> P20Expression
+                       : Literal -> P20Expression
+                       : Identifier -> P20Expression
+    This               : P20Expression
+    Finally            : Block -> Finally
+    Catch              : Identifier * Block -> Catch
+    Default            : List(Statement) -> CaseClause
+    Case               : Expression * List(Statement) -> CaseClause
+    Init               : AssignmentExpressionNoIn -> InitialiserNoIn
+    VarDecInit         : Identifier * InitialiserNoIn -> VarDeclarationNoIn
+    VarDec             : Identifier -> VarDeclarationNoIn
+                       : AssignmentExpression -> AssignmentExpressionNoIn
+                       : Expression -> ExpressionNoIn
+                       : Expression -> ExpressionStatement
+    Init               : AssignmentExpression -> Initialiser
+    VarDecInit         : Identifier * Initialiser -> VarDeclaration
+    VarDec             : Identifier -> VarDeclaration
+    Throw              : Expression -> AutoSemiStatement
+    Return             : Expression -> AutoSemiStatement
+    Return             : AutoSemiStatement
+    Break              : Identifier -> AutoSemiStatement
+    Break              : AutoSemiStatement
+    Continue           : Identifier -> AutoSemiStatement
+    Continue           : AutoSemiStatement
+    Do                 : Statement * Expression -> AutoSemiStatement
+    Expression         : ExpressionStatement -> AutoSemiStatement
+    Var                : List(VarDeclaration) -> AutoSemiStatement
+                       : SemiStatement -> Statement
+    Debugger           : Statement
+    TryCatchFinally    : Block * Catch * Finally -> Statement
+    TryFinally         : Block * Finally -> Statement
+    TryCatch           : Block * Catch -> Statement
+    Labelled           : Identifier * Statement -> Statement
+    Switch             : Expression * List(CaseClause) -> Statement
+    With               : Expression * Statement -> Statement
+    ForIn              : VarDeclarationNoIn * Expression * Statement -> Statement
+    ForIn              : LeftHandSideExpression * Expression * Statement -> Statement
+    For                : List(VarDeclarationNoIn) * Option(Expression) * Option(Expression) * Statement -> Statement
+    For                : Option(ExpressionNoIn) * Option(Expression) * Option(Expression) * Statement -> Statement
+    While              : Expression * Statement -> Statement
+    IfElse             : Expression * Statement * Statement -> Statement
+    If                 : Expression * Statement -> Statement
+    Empty              : Statement
+                       : Block -> Statement
+    Block              : List(Statement) -> Block
+    FunctionBody       : List(SourceElement) -> FunctionBody
+    Lambda             : List(Identifier) * FunctionBody -> FunctionExpression
+                       : FunctionDeclaration -> FunctionExpression
+    Function           : Identifier * List(Identifier) * FunctionBody -> FunctionDeclaration
+                       : Statement -> SourceElement
+                       : FunctionDeclaration -> SourceElement
+    Program            : List(SourceElement) -> Program
+
+
+signature
+  constructors
+    Some : a -> Option(a)
+    None : Option(a)
+
+
+signature
+  constructors
+    Cons : a * List(a) -> List(a)
+    Nil  : List(a)
+    Conc : List(a) * List(a) -> List(a)

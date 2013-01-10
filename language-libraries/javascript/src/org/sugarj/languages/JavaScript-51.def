@@ -1,46 +1,59 @@
 definition
 
 %% TODO: 
-%%       RegExp
 %%       Rename productions -> JavaScript...
-%%       Hide productions ?
-%%       Ought to implement 'with' statement
 
 %% ECMA-262 ECMAScript 5.1
 %%  Missing full Unicode support
-%%  Lookahead restriction on ExpressionStatement is not properly implemented
     
 %% Layout
-%% 7.2 Whitespace    
-%% 7.3 Line Terminators
-%% 7.4 Comments      
-module ecmascript-51/Layout
+module javascript-51/Layout
   exports
       
+    %% 7.2 Whitespace    
     lexical syntax
       [\ \t\12\r\n] -> LAYOUT
     
-      [\n]   -> LineTerminatorSequence
-      CR     -> LineTerminatorSequence
+    context-free restrictions
+      LAYOUT? -/- [\ \t\12\n\r]
+
+    %% 7.3 Line Terminators
+    sorts
+    	LineTerminatorSequence CR
+    	
+    lexical syntax
+      [\n]     -> LineTerminatorSequence
+      CR       -> LineTerminatorSequence
       [\r][\n] -> LineTerminatorSequence
-      [\r]   -> CR
+      [\r]     -> CR
       
+    lexical restrictions
+      CR -/- [\n]
+
+    %% 7.4 Comments
+    sorts
+    	Asterisk
+    	
+    lexical syntax      
       "//" ~[\r\n]*                 -> LAYOUT
       "/*" (~[\*] | Asterisk)* "*/" -> LAYOUT
       [\*]                          -> Asterisk
 
     lexical restrictions
-      CR -/- [\n]
       Asterisk -/- [\/]
 
     context-free restrictions
-      LAYOUT? -/- [\ \t\12\n\r] | [\/]/[\/] | [\/].[\*]
+      LAYOUT? -/- [\/]/[\/]
+      LAYOUT? -/- [\/].[\*]
 
 %% 7.6 Identifiers; No Unicode escape support
 %% 7.6.1 Reserved Words
-module ecmascript-51/Identifiers
+module javascript-51/Identifiers
   exports
     
+    sorts
+    	Identifier IdentifierName Keyword FutureReservedWord  ReservedWord 
+    	
     context-free syntax
       IdentifierName -> Identifier {cons("Identifier")}
       ReservedWord -> Identifier {reject}
@@ -103,23 +116,31 @@ module ecmascript-51/Identifiers
       "false"            -> ReservedWord
       
       lexical restrictions
-        ReservedWord -/- [A-Za-z0-9\$\_]
+        "break" "case" "catch" "continue" "debugger" "default" "delete" "do" "else"        
+        "finally" "for" "function" "if" "in" "instanceof" "new" "return" "switch"      
+        "this" "throw" "try" "typeof" "var" "void" "while" "with" "class" "const"       
+        "enum" "export" "extends" "import" "super" "implements" "interface" "let"         
+        "package" "private" "protected" "public" "static" "yeild" "null" "true" 
+        "false" -/- [A-Za-z0-9\$\_]
 
 %% 7.8 Literals        
 %% 7.8.1 Null Literals
 %% 7.8.2 Boolean Literals
 %% 7.8.3 Numeric Literals
 %% 7.8.4 String Literals
-%% TODO 7.8.5 regular Expression Literals
-module ecmascript-51/Literals
+%% 7.8.5 regular Expression Literals
+module javascript-51/Literals
   exports
     
+    sorts
+    	Literal NullLiteral BooleanLiteral NumericLiteral StringLiteral RegExpLiteral
+    	
     context-free syntax
       NullLiteral    -> Literal {cons("Null")}
       BooleanLiteral -> Literal {cons("Boolean")}
       NumericLiteral -> Literal {cons("Number")}
       StringLiteral  -> Literal {cons("String")}
-      %% RegularExpressionLiteral -> Literal
+      RegExpLiteral  -> Literal {cons("RegExp")}
       
       "null"    -> NullLiteral
       "true"    -> BooleanLiteral {cons("True")}
@@ -127,7 +148,10 @@ module ecmascript-51/Literals
 
       DecimalLiteral    -> NumericLiteral {cons("Decimal")}
       HexIntegerLiteral -> NumericLiteral {cons("HexInt")}
-              
+    
+    sorts
+    	DecimalIntegerLiteral DecimalLiteral ExponentPart SignedInteger HexIntegerLiteral
+    	          
     lexical syntax
       "0"         -> DecimalIntegerLiteral
       [1-9][0-9]* -> DecimalIntegerLiteral
@@ -145,7 +169,10 @@ module ecmascript-51/Literals
     lexical restrictions
       DecimalIntegerLiteral DecimalLiteral SignedInteger -/- [0-9]
       HexIntegerLiteral -/- [0-9a-fA-F]
-        
+      
+    sorts
+    	DoubleQuotedString SingleQuotedString DoubleStringChar SingleStringChar EscapeSequence Zero
+    	  
     context-free syntax
       DoubleQuotedString  -> StringLiteral {cons("DoubleQuotedString")}
       SingleQuotedString  -> StringLiteral {cons("SingleQuotedString")}
@@ -171,19 +198,46 @@ module ecmascript-51/Literals
       
     lexical restrictions
       Zero -/- [0-9]
-        
+    
+    sorts
+    	RegExpBody RegExpFlags RegExpFirstChar RegExpChar RegExpBackslashSeq RegExpClass RegExpClassChar
+    	
+    lexical syntax
+    	"/" RegExpBody "/" RegExpFlags -> RegExpLiteral
+
+    	RegExpFirstChar RegExpChar*    -> RegExpBody
+    	~[\*\\\/\[\n\r]                -> RegExpFirstChar
+      RegExpBackslashSeq             -> RegExpFirstChar
+      RegExpClass                    -> RegExpFirstChar
+    	RegExpFirstChar                -> RegExpChar
+    	[\*]                           -> RegExpChar
+
+    	"\\" ~[\n\r]                   -> RegExpBackslashSeq
+
+    	"[" RegExpClassChar* "]"       -> RegExpClass
+    	~[\]\\\n\r]                    -> RegExpClassChar
+    	RegExpBackslashSeq             -> RegExpClassChar
+
+    	[A-Za-z0-9\_\$]*               -> RegExpFlags
+    	
+    lexical restrictions
+    	RegExpFlags -/- [A-Za-z0-9\_\$]
+    	
 %% 7.9 Automatic Semicolon Insertion
 %% Any statement that requires auto semicolon insertion should -> AutoSemiStatement 
 %% Other statements should -> Statement
-module ecmascript-51/AutoSemiInsertion
+module javascript-51/AutoSemiInsertion
   exports
    
+    sorts
+    	SemiStatement AutoSemiStatement NL EOB EOF
+    	
     context-free syntax 
       SemiStatement         -> Statement {longest-match}
 
       AutoSemiStatement ";" -> SemiStatement {cons("SemiStm")}
       
-      %% These all have empty final productions to have to be careful about ambiguity
+      %% These all have empty final productions so have to be careful about ambiguity
       %% NLStm - statement without semicolon followed by newline
       %% EOFStm - statement without semicolon followed by End of File, no newline
       %% EOBStm - statement without semicolon followed by } before any newline
@@ -201,26 +255,30 @@ module ecmascript-51/AutoSemiInsertion
       EOF -/- ~[]
  
 %% 11 Expressions
-module ecmascript-51/Expressions
+module javascript-51/Expressions
   exports
-   
+  
     %% Using priorities is a useful way to describe operator precedence but does not make
-    %% it easy to specify precedence of new operators
+    %% it easy to specify precedence of operators added by sugar libraries in a composable manner
     %% Naming expression productions P1Expression, P2Expression and so on is not so neat
     %% but will make it easier to specify the precedence of a new operator    
+
+    %% 11.1 Primary Expressions
+    sorts
+      P20Expression ArrayLiteral ArrayElement ObjectLiteral PropertyAssignment PropertyName
+       
     context-free syntax
-      %% 11.1 Primary Expressions
-      "this"             -> P19Expression {cons("This")}
-      Identifier         -> P19Expression
-      Literal            -> P19Expression
-      ArrayLiteral       -> P19Expression
-      ObjectLiteral      -> P19Expression
-      "(" Expression ")" -> P19Expression {cons("Paren")}
+      "this"             -> P20Expression {cons("This")}
+      Identifier         -> P20Expression
+      Literal            -> P20Expression
+      ArrayLiteral       -> P20Expression
+      ObjectLiteral      -> P20Expression
+      "(" Expression ")" -> P20Expression {bracket}
       
 	    "[" "]"                     -> ArrayLiteral {cons("Array"), prefer}
 	    "[" {ArrayElement ","}+ "]" -> ArrayLiteral {cons("Array")}
 	    
-	                         -> ArrayElement {cons("NoElement")}
+	                         -> ArrayElement {cons("EmptyElement")}
 	    AssignmentExpression -> ArrayElement {cons("Element")}
 	          
     context-free syntax
@@ -234,36 +292,49 @@ module ecmascript-51/Expressions
       IdentifierName -> PropertyName
       StringLiteral  -> PropertyName
       NumericLiteral -> PropertyName
-      
+
+    %% 11.2 Left Hand Side Expressions
+    sorts
+    	P19Expresson P18Expression P17Expression P16Expression
+    	Arguments MemberName LeftHandSideExpression
+    	  
     context-free syntax
-      %% 11.2 Left Hand Side Expressions
-      P19Expression                    -> P18Expression
-      FunctionExpression               -> P18Expression
-      P18Expression "[" Expression "]" -> P18Expression {cons("ArrayAccess")}
-      P18Expression "." MemberName     -> P18Expression {cons("MemberAccess")}
-      "new" P18Expression Arguments    -> P18Expression {cons("NewArgs")}
+      P20Expression                    -> P19Expression
+      FunctionExpression               -> P19Expression
+      P19Expression "[" Expression "]" -> P19Expression {cons("ArrayAccess")}
+      P19Expression "." MemberName     -> P19Expression {cons("MemberAccess")}
+      "new" P19Expression Arguments    -> P19Expression {cons("NewArgs")}
 
-      P18Expression         -> P17aExpression
-      "new"+ P17aExpression -> P17aExpression {cons("New")}
+      %% P18 and P17 expressions are equal precedence but with different productions 
+      P19Expression        -> P18Expression
+      "new" P18Expression  -> P18Expression {cons("New")}
 
-      P18Expression Arguments           -> P17bExpression {cons("Call")}
-      P17bExpression Arguments          -> P17bExpression {cons("Call")}
-      P17bExpression "[" Expression "]" -> P17bExpression {cons("ArrayAccess")}
-      P17bExpression "." MemberName     -> P17bExpression {cons("MemberAccess")}        
+      %% Note: P19Expression (not P18Expression) ... -> P17Expression,
+      P19Expression Arguments          -> P17Expression {cons("Call")}
+      P17Expression Arguments          -> P17Expression {cons("Call")}
+      P17Expression "[" Expression "]" -> P17Expression {cons("ArrayAccess")}
+      P17Expression "." MemberName     -> P17Expression {cons("MemberAccess")}        
       
       "(" {AssignmentExpression ","}* ")" -> Arguments {cons("Args")}
       
       IdentifierName -> MemberName {cons("MemberName")}
 
-      P17aExpression -> P16Expression
-      P17bExpression -> P16Expression    
+      P17Expression -> P16Expression
+      P18Expression -> P16Expression    
 
       P16Expression -> LeftHandSideExpression
+    
+    %% 11.3 Postfix Expressions
+    %% 11.4 Unary operators  
+    sorts
+      P15Expression P14Expression 
       
+    context-free syntax
       P16Expression      -> P15Expression    
       P16Expression "++" -> P15Expression {cons("PostInc"), layout("1.last.line==2.first.line")}
       P16Expression "--" -> P15Expression {cons("PostDec"), layout("1.last.line==2.first.line")} 
  
+    context-free syntax
       P15Expression          -> P14Expression
       "delete" P15Expression -> P14Expression {cons("Delete")}
       "void" P15Expression   -> P14Expression {cons("Void")}
@@ -275,6 +346,13 @@ module ecmascript-51/Expressions
       "~" P15Expression      -> P14Expression {cons("BitNot")}
       "!" P15Expression      -> P14Expression {cons("Not")}
  
+    %% 11.5 Multiplicative Operators
+    %% 11.6 Additive Operators
+    %% 11.7 Bitwise Shift Operators
+    sorts
+    	P13Expression P12Expression P11Expression
+    	
+    context-free syntax
       P14Expression                   -> P13Expression
       P13Expression "*" P14Expression -> P13Expression {cons("Times")}
       P13Expression "/" P14Expression -> P13Expression {cons("Divide")}
@@ -289,6 +367,12 @@ module ecmascript-51/Expressions
       P11Expression ">>" P12Expression  -> P11Expression {cons("RightShift")}
       P11Expression ">>>" P12Expression -> P11Expression {cons("URightShift")}
  
+    %% 11.8 Relational Operators
+    %% 11.9 Equality Operators
+    sorts
+      P10Expression P9Expression InExpression
+      
+    context-free syntax
       P11Expression                            -> P10Expression
       P10Expression "<" P11Expression          -> P10Expression {cons("LessThan")}
       P10Expression ">" P11Expression          -> P10Expression {cons("GreaterThan")}
@@ -305,6 +389,12 @@ module ecmascript-51/Expressions
       P9Expression "===" P10Expression -> P9Expression {cons("StrictEquals")}
       P9Expression "!==" P10Expression -> P9Expression {cons("StrictNotEquals")}
  
+    %% 11.10 Binary Bitwise Operators
+    %% 11.11 Binary Logical Operators
+    sorts
+      P8Expression P7Expression P6Expression P5Expression P4Expression
+      
+    context-free syntax
       P9Expression                  -> P8Expression
       P8Expression "&" P9Expression -> P8Expression {cons("BitAnd")}
  
@@ -320,10 +410,20 @@ module ecmascript-51/Expressions
       P5Expression                   -> P4Expression
       P4Expression "||" P5Expression -> P5Expression {cons("Or")}
  
+    %% 11.12 Conditional Operator
+    sorts
+      P3Expression
+      
+    context-free syntax
       P4Expression                                   -> P3Expression
       P4Expression "?" P2Expression ":" P2Expression -> P3Expression {cons("Cond")}
  
-      P3Expression                               -> P2Expression
+     %% 11.13 Assignment Operators
+    sorts
+      P2Expression AssignmentExpression
+      
+    context-free syntax
+     P3Expression                               -> P2Expression
       LeftHandSideExpression "=" P2Expression    -> P2Expression {cons("Assign")}
       LeftHandSideExpression "*=" P2Expression   -> P2Expression {cons("AssignMul")}
       LeftHandSideExpression "/=" P2Expression   -> P2Expression {cons("AssignDiv")}
@@ -338,6 +438,11 @@ module ecmascript-51/Expressions
       LeftHandSideExpression "|=" P2Expression   -> P2Expression {cons("AssignOr")}
       P2Expression                               -> AssignmentExpression
 
+    %% 11.14 Comma Operators
+    sorts
+      P1Expression Expression
+      
+    context-free syntax
       P2Expression                  -> P1Expression 
       P1Expression "," P2Expression -> P1Expression {cons("Comma")}
 
@@ -349,9 +454,13 @@ module ecmascript-51/Expressions
       "/" -/- [\/]
       
 %% 12 Statements
-module ecmascript-51/Statements
+module javascript-51/Statements
   exports
-    
+    sorts
+    	Block Statement VarDeclaration Initialiser ExpressionStatement 
+    	ExpressionNoIn AssignmentExpressionNoIn VarDeclarationNoIn InitialiserNoIn
+    	CaseClause Catch Finally
+    	
     context-free syntax
       %% 12.1 Block
       "{" Statement* "}" -> Block {cons("Block")}
@@ -362,26 +471,15 @@ module ecmascript-51/Statements
       Identifier                   -> VarDeclaration {cons("VarDec")}
       Identifier Initialiser       -> VarDeclaration {cons("VarDecInit")}
       "=" AssignmentExpression     -> Initialiser {cons("Init")}
-      %% NoIn variants required by 'for' statements
-      Identifier                   -> VarDeclarationNoIn {cons("VarDec")}
-      Identifier InitialiserNoIn   -> VarDeclarationNoIn {cons("VarDecInit")}
-      "=" AssignmentExpressionNoIn -> InitialiserNoIn {cons("Init")}
       
       %% 12.3 Empty Statement
       ";" -> Statement {cons("Empty")}   
       
       %% 12.4 Expression Statement
       %% Reject expressions starting with { or 'function'
-      %% This implementation resolves ambiguity but allows invalid JavaScript
-      %% e.g {}.x would parse as MemberAccess({}, x) but should be disallowed
-      %% A better implementation would be
-      %% RESTRICTEXPR Expression -> ...
-      %% -> RESTRICTEXPR
-      %% RESTRICTEXPR -/- [\{] | [f].[u].[n].[c].[t].[i].[o].[n].[\ \t\12\n\r]
-      %% But multichar restrictions are not currently supported
       Expression -> ExpressionStatement
-      FunctionExpression -> ExpressionStatement {reject}
-      ObjectLiteral -> ExpressionStatement {reject}
+      "{" ~[]* -> ExpressionStatement {reject}
+      "function" ~[]* -> ExpressionStatement {reject}
       ExpressionStatement -> AutoSemiStatement {cons("Expression")}
       
       %% 12.5 if Statement
@@ -403,10 +501,13 @@ module ecmascript-51/Statements
       "for" "(" "var" VarDeclarationNoIn "in" Expression ")" Statement   -> Statement {cons("ForIn")}
       
       %% Special NoIn expression variants used by for and for-in statements
-      Expression           -> ExpressionNoIn
-      InExpression         -> ExpressionNoIn {reject}
-      AssignmentExpression -> AssignmentExpressionNoIn
-      InExpression         -> AssignmentExpressionNoIn {reject}
+      Expression                   -> ExpressionNoIn
+      InExpression                 -> ExpressionNoIn {reject}
+      AssignmentExpression         -> AssignmentExpressionNoIn
+      InExpression                 -> AssignmentExpressionNoIn {reject}
+      Identifier                   -> VarDeclarationNoIn {cons("VarDec")}
+      Identifier InitialiserNoIn   -> VarDeclarationNoIn {cons("VarDecInit")}
+      "=" AssignmentExpressionNoIn -> InitialiserNoIn {cons("Init")}
       
       %% 12.7 continue Statement
       "continue"            -> AutoSemiStatement {cons("Continue")}
@@ -421,7 +522,7 @@ module ecmascript-51/Statements
       "return" Expression -> AutoSemiStatement {cons("Return"), layout("1.first.line == 2.first.line")}
      
       %% 12.10 with Statement
-      %% Not implemented, considered dangerous
+      "with" "(" Expression ")" Statement -> Statement {cons("With")}
 
       %% 12.11 switch Statement
       "switch" "(" Expression ")" "{" CaseClause* "}" -> Statement {cons("Switch")}
@@ -429,7 +530,7 @@ module ecmascript-51/Statements
       "default" ":" Statement*                        -> CaseClause {cons("Default")}
       
       %% 12.12 Labelled Statements
-      Identifier ":" Statement -> Statement {cons("LabelledStatement")}
+      Identifier ":" Statement -> Statement {cons("Labelled")}
       
       %% 12.13 throw Statement
       "throw" Expression -> AutoSemiStatement {cons("Throw"), layout("1.first.line == 2.first.line")}
@@ -445,8 +546,11 @@ module ecmascript-51/Statements
       "debugger" -> Statement {cons("Debugger")}
       
 %% 13 Function Declaration
-module ecmascript-51/Functions
+module javascript-51/Functions
   exports
+  	
+  	sorts
+  		FunctionDeclaration FunctionExpression FunctionBody
 
     context-free syntax
       "function" Identifier "(" {Identifier ","}* ")" "{" FunctionBody "}" -> FunctionDeclaration {cons("Function")}
@@ -457,39 +561,116 @@ module ecmascript-51/Functions
       SourceElement* -> FunctionBody {cons("FunctionBody")}
    
 %% 14 Program
-module ecmascript-51/Program
+module javascript-51/Program
   exports
     
     context-free start-symbols
       Program
     
+    sorts
+    	Program SourceElement
+    	
     context-free syntax
       SourceElement* -> Program {cons("Program")}
 
       FunctionDeclaration -> SourceElement
       Statement           -> SourceElement
  
-module ECMAScript-51
+module JavaScript-51
 imports
-  ecmascript-51/Program
-  ecmascript-51/Functions
-  ecmascript-51/Statements
-  ecmascript-51/Expressions
-  ecmascript-51/AutoSemiInsertion
-  ecmascript-51/Literals
-  ecmascript-51/Identifiers
-  ecmascript-51/Layout
+  javascript-51/Program
+  javascript-51/Functions
+  javascript-51/Statements
+  javascript-51/Expressions
+  javascript-51/AutoSemiInsertion
+  javascript-51/Literals
+  javascript-51/Identifiers
+  javascript-51/Layout
   
 module org/sugarj/languages/JavaScript
-imports ECMAScript-51
-  [ Program   =>    JavaScriptProgram
-    SourceElement => JavaScriptSourceElement
-    Statement => JavaScriptStatement
-    Expression => JavaScriptExpression
+imports JavaScript-51
+  [ LineTerminatorSequence => JavaScriptLineTerminatorSequence
+    CR => JavaScriptCR
+    Asterisk => JavaScriptAsterisk
+    Identifier=> JavaScriptIdentifier
+    IdentifierName => JavaScriptIdentifierName
+    Keyword => JavaScriptKeyword
+    FutureReservedWord => JavaScriptFutureReservedWord
     ReservedWord => JavaScriptReservedWord
-    Identifier => JavaScriptIdentifier
+    Literal => JavaScriptLiteral
     NullLiteral => JavaScriptNullLiteral
     BooleanLiteral => JavaScriptBooleanLiteral
-    LineTerminatorSequence => JavaScriptLineTerminatorSequence
     NumericLiteral => JavaScriptNumericLiteral
-    StringLiteral => JavaScriptStringLiteral ]
+    StringLiteral => JavaScriptStringLiteral
+    RegExpLiteral => JavaScriptRegExpLiteral
+    DecimalIntegerLiteral => JavaScriptDecimalIntegerLiteral
+    DecimalLiteral => JavaScriptDecimalLiteral
+    ExponentPart => JavaScriptExponentPart
+    SignedInteger => JavaScriptSignedInteger
+    HexIntegerLiteral => JavaScriptHexIntegerLiteral
+    DoubleQuotedString => JavaScriptDoubleQuotedString
+    SingleQuotedString => JavaScriptSingleQuotedString
+    DoubleStringChar => JavaScriptDoubleStringChar
+    SingleStringChar => JavaScriptSingleStringChar
+    EscapeSequence => JavaScriptEscapeSequence
+    Zero => JavaScriptZero
+    RegExpBody => JavaScriptRegExpBody
+    RegExpFlags => JavaScriptRegExpFlags
+    RegExpFirstChar => JavaScriptRegExpFirstChar
+    RegExpChar => JavaScriptRegExpChar
+    RegExpBackslashSeq => JavaScriptRegExpBackslashSeq
+    RegExpClass => JavaScriptRegExpClass
+    RegExpClassChar => JavaScriptRegExpClassChar
+    SemiStatement => JavaScriptSemiStatement
+    AutoSemiStatement => JavaScriptAutoSemiStatement
+    NL => JavaScriptNL
+    EOB => JavaScriptEOB
+    EOF => JavaScriptEOF
+    P20Expression => JavaScriptP20Expression
+    ArrayLiteral => JavaScriptArrayLiteral
+    ArrayElement => JavaScriptArrayElement
+    ObjectLiteral => JavaScriptObjectLiteral
+    PropertyAssignment => JavaScriptPropertyAssignment
+    PropertyName => JavaScriptPropertyName
+    P19Expresson => JavaScriptP19Expresson
+    P18Expression => JavaScriptP18Expression
+    P17Expression => JavaScriptP17Expression
+    P16Expression => JavaScriptP16Expression
+    Arguments => JavaScriptArguments
+    MemberName => JavaScriptMemberName
+    LeftHandSideExpression => JavaScriptLeftHandSideExpression
+    P15Expression => JavaScriptP15Expression
+    P14Expression => JavaScriptP14Expression
+    P13Expression => JavaScriptP13Expression
+    P12Expression => JavaScriptP12Expression
+    P11Expression => JavaScriptP11Expression
+    P10Expression => JavaScriptP10Expression
+    P9Expression => JavaScriptP9Expression
+    InExpression => JavaScriptInExpression
+    P8Expression => JavaScriptP8Expression
+    P7Expression => JavaScriptP7Expression
+    P6Expression => JavaScriptP6Expression
+    P5Expression => JavaScriptP5Expression
+    P4Expression => JavaScriptP4Expression
+    P3Expression => JavaScriptP3Expression
+    P2Expression => JavaScriptP2Expression
+    AssignmentExpression => JavaScriptAssignmentExpression
+    P1Expression => JavaScriptP1Expression
+    Expression => JavaScriptExpression
+    Block => JavaScriptBlock
+    Statement => JavaScriptStatement
+    VarDeclaration => JavaScriptVarDeclaration
+    Initialiser => JavaScriptInitialiser
+    ExpressionStatement => JavaScriptExpressionStatement
+    ExpressionNoIn => JavaScriptExpressionNoIn
+    AssignmentExpressionNoIn => JavaScriptAssignmentExpressionNoIn
+    VarDeclarationNoIn => JavaScriptVarDeclarationNoIn
+    InitialiserNoIn => JavaScriptInitialiserNoIn
+    CaseClause => JavaScriptCaseClause
+    Catch => JavaScriptCatch
+    Finally=> JavaScriptFinally
+    FunctionDeclaration => JavaScriptFunctionDeclaration
+    FunctionExpression => JavaScriptFunctionExpression
+    FunctionBody=> JavaScriptFunctionBody
+    Program => JavaScriptProgram
+    SourceElement=> JavaScriptSourceElement]
