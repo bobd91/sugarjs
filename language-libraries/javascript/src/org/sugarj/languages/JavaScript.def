@@ -4,8 +4,10 @@ definition
 %%  Missing full Unicode support
 
 %% Known bugs:
-%% "{} [0]" and "function x() {} []" should both parse as two statements
-%%    but they produce an ambiguous parse
+%% new x().y()  - ambiguous
+%% new x()[0]() - ambiguous
+%% "{} [0]" and "function x() {} [0]" should both parse as two statements
+%%    but they produce ambiguous results 
     
 %% Layout
 module javascript-51/Layout
@@ -13,7 +15,7 @@ module javascript-51/Layout
       
     %% 7.2 Whitespace    
     lexical syntax
-      [\ \t\12\r\n] -> LAYOUT
+      %% [\ \t\12\r\n] -> LAYOUT
     
     context-free restrictions
       LAYOUT? -/- [\ \t\12\n\r]
@@ -36,9 +38,9 @@ module javascript-51/Layout
       Asterisk
       
     lexical syntax      
-      "//" ~[\r\n]*                 -> LAYOUT
-      "/*" (~[\*] | Asterisk)* "*/" -> LAYOUT
-      [\*]                          -> Asterisk
+      "//" ~[\r\n]* LineTerminatorSequence -> LAYOUT
+      "/*" (~[\*] | Asterisk)* "*/"        -> LAYOUT
+      [\*]                                 -> Asterisk
 
     lexical restrictions
       Asterisk -/- [\/]
@@ -137,13 +139,13 @@ module javascript-51/Literals
       Literal NullLiteral BooleanLiteral NumericLiteral StringLiteral RegExpLiteral
       
     context-free syntax
-      NullLiteral    -> Literal {cons("Null")}
+      NullLiteral    -> Literal
       BooleanLiteral -> Literal {cons("Boolean")}
       NumericLiteral -> Literal {cons("Number")}
       StringLiteral  -> Literal {cons("String")}
       RegExpLiteral  -> Literal {cons("RegExp")}
       
-      "null"    -> NullLiteral
+      "null"    -> NullLiteral {cons("Null")}
       "true"    -> BooleanLiteral {cons("True")}
       "false"   -> BooleanLiteral {cons("False")}
 
@@ -231,23 +233,25 @@ module javascript-51/AutoSemiInsertion
   exports
    
     sorts
-      SemiStatement AutoSemiStatement NL EOB EOF
+      SemiStatement AutoSemiStatement EOL EOB EOF
       
     context-free syntax 
       SemiStatement         -> Statement {longest-match}
 
       AutoSemiStatement ";" -> SemiStatement {cons("SemiStm")}
       
-      %% These all have empty final productions so have to be careful about ambiguity
-      %% NLStm - statement without semicolon followed by newline
-      %% EOFStm - statement without semicolon followed by End of File, no newline
+      %% These all have empty final productions to ensure that LAYOUT is consumed
+      %% But it creates ambiguity that has to be resolved
+      %% Would have liked to have used layout constraints but they are ignored on empty productions
+      %% EOLStm - statement without semicolon followed by newline
+      %% EOFStm - statement without semicolon followed by end of file, no newline
       %% EOBStm - statement without semicolon followed by } before any newline
-      AutoSemiStatement NL  -> SemiStatement {cons("NLStm"), enforce-newline, prefer}
+      AutoSemiStatement EOL -> SemiStatement {cons("EOLStm"), enforce-newline, prefer}
       AutoSemiStatement EOF -> SemiStatement {cons("EOFStm")}
       AutoSemiStatement EOB -> SemiStatement {cons("EOBStm"), avoid}
       
     lexical syntax
-      -> NL
+      -> EOL
       -> EOB 
       -> EOF
       
@@ -259,138 +263,22 @@ module javascript-51/AutoSemiInsertion
 module javascript-51/Expressions
   exports
 
-    sorts
-      Expression ArrayLiteral ArrayElement ObjectLiteral PropertyAssignment PropertyName
-      Arguments MemberName LeftHandSideExpression InExpression AssignmentExpression
+    sorts 
+      InExpression AssignmentExpression
       ArraySubscript Choice
-       
+  
+    %% 11.1 Primary Expressions
+    sorts
+      Expression ArrayLiteral ArrayElement ObjectLiteral PropertyAssignment PropertyName Parenthesis
+          
     context-free syntax
       "this"             -> Expression {cons("This")}
       Identifier         -> Expression
       Literal            -> Expression
       ArrayLiteral       -> Expression
       ObjectLiteral      -> Expression
-      "(" Expression ")" -> Expression {bracket}
+      "(" Expression ")" -> Expression {cons("Parenthesis")}
 
-    context-free priorities
-    {
-      FunctionExpression         -> Expression
-      Expression ArraySubscript  -> Expression {cons("ArrayAccess")}
-      Expression "." MemberName  -> Expression {cons("MemberAccess")}
-      "new" Expression Arguments -> Expression {cons("NewArgs")}
-    }
-    >
-      "new" Expression           -> Expression {cons("New")}
-    
-    context-free priorities
-    {
-      FunctionExpression         -> Expression
-      "new" Expression Arguments -> Expression
-    }
-    >
-      Expression Arguments       -> Expression {cons("Call")}
-    
-    context-free priorities
-    {
-      "new" Expression           -> Expression
-      Expression Arguments       -> Expression
-      
-      Expression                 -> LeftHandSideExpression
-    }
-    >
-    { right:
-      Expression "++"            -> Expression {cons("PostInc"), layout("1.last.line==2.first.line")}
-      Expression "--"            -> Expression {cons("PostDec"), layout("1.last.line==2.first.line")} 
-    } 
-    >
-    {
-      "delete" Expression        -> Expression {cons("Delete")}
-      "void" Expression          -> Expression {cons("Void")}
-      "typeof" Expression        -> Expression {cons("Typeof")}
-      "++" Expression            -> Expression {cons("PreInc")}
-      "--" Expression            -> Expression {cons("PreDec")}
-      "+" Expression             -> Expression {cons("UnaryPlus")}
-      "-" Expression             -> Expression {cons("UnaryMinus")}
-      "~" Expression             -> Expression {cons("BitNot")}
-      "!" Expression             -> Expression {cons("Not")}
-    }
-    >
-    { left:
-      Expression "*" Expression  -> Expression {cons("Times"), left}
-      Expression "/" Expression  -> Expression {cons("Divide"), left}
-      Expression "%" Expression  -> Expression {cons("Remainder"), left} 
-    }
-    >
-    { left:
-      Expression "+" Expression  -> Expression {cons("Plus"), left}
-      Expression "-" Expression  -> Expression {cons("Minus"), left}
-    }
-    >
-    { left:
-      Expression "<<" Expression  -> Expression {cons("LeftShift"), left}
-      Expression ">>" Expression  -> Expression {cons("RightShift"), left}
-      Expression ">>>" Expression -> Expression {cons("URightShift"), left}
-    }
-    >
-    { left:
-      Expression "<" Expression          -> Expression {cons("LessThan"), left}
-      Expression ">" Expression          -> Expression {cons("GreaterThan"), left}
-      Expression "<=" Expression         -> Expression {cons("LessEquals"), left}
-      Expression "<=" Expression         -> Expression {cons("GreateEquals"), left}
-      Expression "instanceof" Expression -> Expression {cons("InstanceOf"), left}
-      %% Keep track of in expressions as required elsewhere
-      Expression "in" Expression         -> InExpression {cons("In"), left}
-      InExpression                             -> Expression 
-    }
-    >
-    { left:
-      Expression "==" Expression  -> Expression {cons("Equals"), left}
-      Expression "!=" Expression  -> Expression {cons("NotEquals"), left}
-      Expression "===" Expression -> Expression {cons("StrictEquals"), left}
-      Expression "!==" Expression -> Expression {cons("StrictNotEquals"), left}
-    }
-    >
-      Expression "&" Expression  -> Expression {cons("BitAnd"), left}
-    >
-      Expression "^" Expression  -> Expression {cons("BitXor"), left}
-    >
-      Expression "|" Expression  -> Expression {cons("BitOr"), left}
-    >
-      Expression "&&" Expression -> Expression {cons("And"), left}
-    >
-      Expression "||" Expression -> Expression {cons("Or"), left}
-    >
-      Expression "?" Choice      -> Expression {right, cons("Cond")}
-    >
-    { right:
-      LeftHandSideExpression "=" Expression    -> Expression {cons("Assign")}
-      LeftHandSideExpression "*=" Expression   -> Expression {cons("AssignMul")}
-      LeftHandSideExpression "/=" Expression   -> Expression {cons("AssignDiv")}
-      LeftHandSideExpression "%=" Expression   -> Expression {cons("AssignRem")}
-      LeftHandSideExpression "+=" Expression   -> Expression {cons("AssignPlus")}
-      LeftHandSideExpression "-=" Expression   -> Expression {cons("AssignMinus")}
-      LeftHandSideExpression "<<=" Expression  -> Expression {cons("AssignLeftShift")}
-      LeftHandSideExpression ">>=" Expression  -> Expression {cons("AssignRightShift")}
-      LeftHandSideExpression ">>>=" Expression -> Expression {cons("AssignURightShift")}
-      LeftHandSideExpression "&=" Expression   -> Expression {cons("AssignAnd")}
-      LeftHandSideExpression "^=" Expression   -> Expression {cons("AssignXor")}
-      LeftHandSideExpression "|=" Expression   -> Expression {cons("AssignOr")}
-      Expression                               -> AssignmentExpression
-    }
-    >
-      Expression "," Expression -> Expression {cons("Comma"), left}
-    
-    %% New and Call cause ambiguity with NewArgs
-    %% Disallow New(Call...) and Call(New...)
-    context-free priorities
-      "new" Expression -> Expression
-    .>
-      Expression Arguments ->  Expression
-    .> 
-      "new" Expression -> Expression
-    
-    context-free syntax
-      
       "[" "]"                     -> ArrayLiteral {cons("Array"), prefer}
       "[" {ArrayElement ","}+ "]" -> ArrayLiteral {cons("Array")}
       
@@ -408,18 +296,245 @@ module javascript-51/Expressions
       StringLiteral  -> PropertyName
       NumericLiteral -> PropertyName
 
+    %% 11.2 Left-Hand-Side Expressions
+    sorts
+      Arguments MemberName LeftHandSideExpression ArraySubscript
+      
+    context-free syntax
+      FunctionExpression         -> Expression
+      Expression ArraySubscript  -> Expression {cons("ArrayAccess")}
+      Expression "." MemberName  -> Expression {cons("MemberAccess")}
+      "new" Expression Arguments -> Expression {cons("NewArgs")}
+      "new" Expression           -> Expression {cons("New")}
+      Expression Arguments       -> Expression {cons("Call")}
+      Expression                 -> LeftHandSideExpression
+      
       "(" {AssignmentExpression ","}* ")" -> Arguments {cons("Args")}
       
       "[" Expression "]" -> ArraySubscript {cons("Subscript")}
       
       IdentifierName -> MemberName {cons("MemberName")}
+
+    %% 11.3 Postfix Expressions      
+    context-free syntax
+      Expression "++"            -> Expression {cons("PostInc"), layout("1.last.line==2.first.line")}
+      Expression "--"            -> Expression {cons("PostDec"), layout("1.last.line==2.first.line")} 
+
+    %% 11.4 Unary Expressions
+    context-free syntax
+      "delete" Expression        -> Expression {cons("Delete")}
+      "void" Expression          -> Expression {cons("Void")}
+      "typeof" Expression        -> Expression {cons("Typeof")}
+      "++" Expression            -> Expression {cons("PreInc")}
+      "--" Expression            -> Expression {cons("PreDec")}
+      "+" Expression             -> Expression {cons("UnaryPlus")}
+      "-" Expression             -> Expression {cons("UnaryMinus")}
+      "~" Expression             -> Expression {cons("BitNot")}
+      "!" Expression             -> Expression {cons("Not")}
+
+    %% 11.5 Multiplicitive Operators
+    context-free syntax
+      Expression "*" Expression  -> Expression {cons("Times"), left}
+      Expression "/" Expression  -> Expression {cons("Divide"), left}
+      Expression "%" Expression  -> Expression {cons("Remainder"), left} 
+
+    %% 11.6 Additive Operators
+    context-free syntax
+      Expression "+" Expression  -> Expression {cons("Plus"), left}
+      Expression "-" Expression  -> Expression {cons("Minus"), left}
+
+    %% 11.7 Bitwise Shift Operators
+    context-free syntax
+      Expression "<<" Expression  -> Expression {cons("LeftShift"), left}
+      Expression ">>" Expression  -> Expression {cons("RightShift"), left}
+      Expression ">>>" Expression -> Expression {cons("URightShift"), left}
+
+    %% 11.8 Relational Operators
+    sorts
+      InExpression
       
-      AssignmentExpression ":" AssignmentExpression -> Choice {cons("Choice")}
+    context-free syntax
+      Expression "<" Expression          -> Expression {cons("LessThan"), left}
+      Expression ">" Expression          -> Expression {cons("GreaterThan"), left}
+      Expression "<=" Expression         -> Expression {cons("LessEquals"), left}
+      Expression ">=" Expression         -> Expression {cons("GreateEquals"), left}
+      Expression "instanceof" Expression -> Expression {cons("InstanceOf"), left}
+      %% Keep track of in expressions as required elsewhere
+      Expression "in" Expression         -> InExpression {cons("In"), left}
+      InExpression                       -> Expression 
+
+    %% 11.9 Equality Operators
+    context-free syntax
+      Expression "==" Expression  -> Expression {cons("Equals"), left}
+      Expression "!=" Expression  -> Expression {cons("NotEquals"), left}
+      Expression "===" Expression -> Expression {cons("StrictEquals"), left}
+      Expression "!==" Expression -> Expression {cons("StrictNotEquals"), left}
+
+    %% 11.10 Binary Bitwaise Operators
+    context-free syntax
+      Expression "&" Expression  -> Expression {cons("BitAnd"), left}
+      Expression "^" Expression  -> Expression {cons("BitXor"), left}
+      Expression "|" Expression  -> Expression {cons("BitOr"), left}
+      
+    %% 11.11 Binary Logical Operators
+    context-free syntax
+      Expression "&&" Expression -> Expression {cons("And"), left}
+      Expression "||" Expression -> Expression {cons("Or"), left}
+
+    %% 11.12 Conditional Operator
+    context-free syntax
+      Expression "?" Choice                        -> Expression {right, cons("Conditional")}
+     AssignmentExpression ":" AssignmentExpression -> Choice {cons("Choice")}
+
+    %% 11.13 Assignment Operators
+    context-free syntax
+      LeftHandSideExpression "=" Expression    -> Expression {cons("Assign")}
+      LeftHandSideExpression "*=" Expression   -> Expression {cons("AssignMul")}
+      LeftHandSideExpression "/=" Expression   -> Expression {cons("AssignDiv")}
+      LeftHandSideExpression "%=" Expression   -> Expression {cons("AssignRem")}
+      LeftHandSideExpression "+=" Expression   -> Expression {cons("AssignPlus")}
+      LeftHandSideExpression "-=" Expression   -> Expression {cons("AssignMinus")}
+      LeftHandSideExpression "<<=" Expression  -> Expression {cons("AssignLeftShift")}
+      LeftHandSideExpression ">>=" Expression  -> Expression {cons("AssignRightShift")}
+      LeftHandSideExpression ">>>=" Expression -> Expression {cons("AssignURightShift")}
+      LeftHandSideExpression "&=" Expression   -> Expression {cons("AssignAnd")}
+      LeftHandSideExpression "^=" Expression   -> Expression {cons("AssignXor")}
+      LeftHandSideExpression "|=" Expression   -> Expression {cons("AssignOr")}
+      Expression                               -> AssignmentExpression
+
+    %% 11.14 Comma Operator
+    context-free syntax
+      Expression "," Expression -> Expression {cons("Comma"), left}
 
     lexical restrictions
       "+" -/- [\+]
       "-" -/- [\-]
       "/" -/- [\/]
+
+module javascript-51/Priorities
+  exports
+    
+    %% Lots of ambiguity with NewArgs, New and Call
+    %% new X()     - NewArgs(X)               NOT New(Call(X)) or Call(New(X))
+    %% new new X() - New(NewArgs(X))          NOT NewArgs(New(X))
+    %% new X()()   - Call(NewArgs(X))         NOT NewArgs(Call(X))
+    %% new X()[0]  - ArrayAccess(NewArgs(X))  NOT New(ArrayAccess(Call(X)))
+    %% new X().m   - MemberAccess(NewArgs(X)) NOT New(MemberAccess(Call(X)))
+    %% new X[0]    - New(ArrayAccess(X,0))    NOT ArrayAccess(New(X),0)
+    %% new X.m     - New(MemberAccess(X,m))   NOT MemberAccess(New(X),m)
+    
+    context-free priorities
+    {
+      Expression ArraySubscript  -> Expression
+      Expression "." MemberName  -> Expression
+      "new" Expression Arguments -> Expression
+    }
+    >
+      "new" Expression           -> Expression {avoid}
+    
+    context-free priorities
+      "new" Expression Arguments -> Expression
+    >
+      Expression Arguments       -> Expression
+
+    %% Prohibit Call(New) and New(Call)
+    context-free priorities
+      Expression Arguments       -> Expression
+    .>
+      "new" Expression           -> Expression {avoid}
+    .>
+      Expression Arguments       -> Expression
+     
+     %% Priorities for the rest of the expressions are strightforward          
+    context-free priorities
+    {
+      "new" Expression           -> Expression
+      Expression Arguments       -> Expression
+      
+      Expression                 -> LeftHandSideExpression
+    }
+    >
+    { right:
+      Expression "++"            -> Expression
+      Expression "--"            -> Expression
+    } 
+    >
+    {
+      "delete" Expression        -> Expression
+      "void" Expression          -> Expression
+      "typeof" Expression        -> Expression
+      "++" Expression            -> Expression
+      "--" Expression            -> Expression
+      "+" Expression             -> Expression
+      "-" Expression             -> Expression
+      "~" Expression             -> Expression
+      "!" Expression             -> Expression
+    }
+    >
+    { left:
+      Expression "*" Expression  -> Expression
+      Expression "/" Expression  -> Expression
+      Expression "%" Expression  -> Expression 
+    }
+    >
+    { left:
+      Expression "+" Expression  -> Expression
+      Expression "-" Expression  -> Expression
+    }
+    >
+    { left:
+      Expression "<<" Expression  -> Expression
+      Expression ">>" Expression  -> Expression
+      Expression ">>>" Expression -> Expression
+    }
+    >
+    { left:
+      Expression "<" Expression          -> Expression
+      Expression ">" Expression          -> Expression
+      Expression "<=" Expression         -> Expression
+      Expression ">=" Expression         -> Expression
+      Expression "instanceof" Expression -> Expression
+      %% Keep track of in expressions as required elsewhere
+      Expression "in" Expression         -> InExpression
+      InExpression                       -> Expression 
+    }
+    >
+    { left:
+      Expression "==" Expression  -> Expression 
+      Expression "!=" Expression  -> Expression
+      Expression "===" Expression -> Expression
+      Expression "!==" Expression -> Expression
+    }
+    >
+      Expression "&" Expression  -> Expression
+    >
+      Expression "^" Expression  -> Expression
+    >
+      Expression "|" Expression  -> Expression
+    >
+      Expression "&&" Expression -> Expression
+    >
+      Expression "||" Expression -> Expression
+    >
+      Expression "?" Choice      -> Expression
+    >
+    { right:
+      LeftHandSideExpression "=" Expression    -> Expression
+      LeftHandSideExpression "*=" Expression   -> Expression
+      LeftHandSideExpression "/=" Expression   -> Expression
+      LeftHandSideExpression "%=" Expression   -> Expression
+      LeftHandSideExpression "+=" Expression   -> Expression
+      LeftHandSideExpression "-=" Expression   -> Expression
+      LeftHandSideExpression "<<=" Expression  -> Expression
+      LeftHandSideExpression ">>=" Expression  -> Expression
+      LeftHandSideExpression ">>>=" Expression -> Expression
+      LeftHandSideExpression "&=" Expression   -> Expression
+      LeftHandSideExpression "^=" Expression   -> Expression
+      LeftHandSideExpression "|=" Expression   -> Expression
+      Expression                               -> AssignmentExpression
+    }
+    >
+      Expression "," Expression -> Expression
       
 %% 12 Statements
 module javascript-51/Statements
@@ -550,6 +665,7 @@ imports
   javascript-51/Functions
   javascript-51/Statements
   javascript-51/Expressions
+  javascript-51/Priorities
   javascript-51/AutoSemiInsertion
   javascript-51/Literals
   javascript-51/Identifiers
@@ -591,7 +707,7 @@ imports JavaScript-51
     RegExpClassChar => JavaScriptRegExpClassChar
     SemiStatement => JavaScriptSemiStatement
     AutoSemiStatement => JavaScriptAutoSemiStatement
-    NL => JavaScriptNL
+    EOL => JavaScriptEOL
     EOB => JavaScriptEOB
     EOF => JavaScriptEOF
     Expression => JavaScriptExpression
@@ -624,4 +740,5 @@ imports JavaScript-51
     Program => JavaScriptProgram
     SourceElement=> JavaScriptSourceElement
     ArraySubscript => JavaScriptArraySubscript
-    Choice => JavaScriptChoice]
+    Choice => JavaScriptChoice
+    Parenthesis => JavaScriptParenthesis]

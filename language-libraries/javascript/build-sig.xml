@@ -3,7 +3,8 @@
 <project name="SugarJS" default="all">
         
         <!-- Key input modules -->
-        <property name="sdfmodule" value="JavaScript-51"/>
+        <property name="sdfmodule" value="JavaScript"/>
+	      <property name="moduleprefix" value="org/sugarj/languages" />
     
         <!-- Project directories -->
         <property name="include" location="src/org/sugarj/languages"/>
@@ -30,7 +31,7 @@
            <arg value="-o"/>
            <arg value="${include}/${sdfmodule}.str"/>
            <arg value="--module"/>
-           <arg value="${sdfmodule}"/>
+           <arg value="${moduleprefix}/${sdfmodule}"/>
        </java>
    </target>
    
@@ -49,7 +50,7 @@
            <arg value="-i"/>
            <arg value="${include}/${sdfmodule}.def"/>
            <arg value="-m"/>
-           <arg value="${sdfmodule}"/>
+           <arg value="${moduleprefix}/${sdfmodule}"/>
            <arg value="-o"/>
            <arg value="${include}/${sdfmodule}.rtg"/>
            <arg value="--ignore-missing-cons"/>
@@ -97,5 +98,5 @@
 
     
         <!-- Main target -->
-        <target name="all" depends="sdf2rtg,rtg2sig"/>
+         <target name="all" depends="sdf2rtg,rtg2sig,ppgen"/> 
     </project>

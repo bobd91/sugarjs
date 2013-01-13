@@ -1,177 +1,158 @@
-module JavaScript-51
+module org/sugarj/languages/JavaScript
 
 signature
   constructors
-    Identifier         : IdentifierName -> Identifier
-                       : String -> IdentifierName
-                       : String -> RegExpLiteral
-    SingleQuotedString : SingleQuotedString -> StringLiteral
-    DoubleQuotedString : DoubleQuotedString -> StringLiteral
-                       : String -> SingleQuotedString
-                       : String -> DoubleQuotedString
-                       : String -> HexIntegerLiteral
-                       : String -> DecimalLiteral
-    HexInt             : HexIntegerLiteral -> NumericLiteral
-    Decimal            : DecimalLiteral -> NumericLiteral
-    False              : BooleanLiteral
-    True               : BooleanLiteral
-    RegExp             : RegExpLiteral -> Literal
-    String             : StringLiteral -> Literal
-    Number             : NumericLiteral -> Literal
-    Boolean            : BooleanLiteral -> Literal
-    EOBStm             : AutoSemiStatement * EOB -> SemiStatement
-    EOFStm             : AutoSemiStatement * EOF -> SemiStatement
-    NLStm              : AutoSemiStatement * NL -> SemiStatement
-    SemiStm            : AutoSemiStatement -> SemiStatement
-                       : String -> EOF
-                       : String -> EOB
-                       : String -> NL
-                       : P1Expression -> Expression
-    Comma              : P1Expression * P2Expression -> P1Expression
-                       : P2Expression -> P1Expression
-                       : P2Expression -> AssignmentExpression
-    AssignOr           : LeftHandSideExpression * P2Expression -> P2Expression
-    AssignXor          : LeftHandSideExpression * P2Expression -> P2Expression
-    AssignAnd          : LeftHandSideExpression * P2Expression -> P2Expression
-    AssignURightShift  : LeftHandSideExpression * P2Expression -> P2Expression
-    AssignRightShift   : LeftHandSideExpression * P2Expression -> P2Expression
-    AssignLeftShift    : LeftHandSideExpression * P2Expression -> P2Expression
-    AssignMinus        : LeftHandSideExpression * P2Expression -> P2Expression
-    AssignPlus         : LeftHandSideExpression * P2Expression -> P2Expression
-    AssignRem          : LeftHandSideExpression * P2Expression -> P2Expression
-    AssignDiv          : LeftHandSideExpression * P2Expression -> P2Expression
-    AssignMul          : LeftHandSideExpression * P2Expression -> P2Expression
-    Assign             : LeftHandSideExpression * P2Expression -> P2Expression
-                       : P3Expression -> P2Expression
-    Cond               : P4Expression * P2Expression * P2Expression -> P3Expression
-                       : P4Expression -> P3Expression
-                       : P5Expression -> P4Expression
-    Or                 : P4Expression * P5Expression -> P5Expression
-    And                : P5Expression * P6Expression -> P5Expression
-                       : P6Expression -> P5Expression
-    BitOr              : P6Expression * P7Expression -> P6Expression
-                       : P7Expression -> P6Expression
-    BitXor             : P7Expression * P8Expression -> P7Expression
-                       : P8Expression -> P7Expression
-    BitAnd             : P8Expression * P9Expression -> P8Expression
-                       : P9Expression -> P8Expression
-    StrictNotEquals    : P9Expression * P10Expression -> P9Expression
-    StrictEquals       : P9Expression * P10Expression -> P9Expression
-    NotEquals          : P9Expression * P10Expression -> P9Expression
-    Equals             : P9Expression * P10Expression -> P9Expression
-                       : P10Expression -> P9Expression
-    In                 : P10Expression * P11Expression -> InExpression
-                       : InExpression -> P10Expression
-    InstanceOf         : P10Expression * P11Expression -> P10Expression
-    LessEquals         : P10Expression * P11Expression -> P10Expression
-    GreaterThan        : P10Expression * P11Expression -> P10Expression
-    LessThan           : P10Expression * P11Expression -> P10Expression
-                       : P11Expression -> P10Expression
-    URightShift        : P11Expression * P12Expression -> P11Expression
-    RightShift         : P11Expression * P12Expression -> P11Expression
-    LeftShift          : P11Expression * P12Expression -> P11Expression
-                       : P12Expression -> P11Expression
-    Minus              : P12Expression * P13Expression -> P12Expression
-    Plus               : P12Expression * P13Expression -> P12Expression
-                       : P13Expression -> P12Expression
-    Remainder          : P13Expression * P14Expression -> P13Expression
-    Divide             : P13Expression * P14Expression -> P13Expression
-    Times              : P13Expression * P14Expression -> P13Expression
-                       : P14Expression -> P13Expression
-    Not                : P15Expression -> P14Expression
-    BitNot             : P15Expression -> P14Expression
-    UnaryMinus         : P15Expression -> P14Expression
-    UnaryPlus          : P15Expression -> P14Expression
-    PreDec             : P15Expression -> P14Expression
-    PreInc             : P15Expression -> P14Expression
-    Typeof             : P15Expression -> P14Expression
-    Void               : P15Expression -> P14Expression
-    Delete             : P15Expression -> P14Expression
-                       : P15Expression -> P14Expression
-    PostDec            : P16Expression -> P15Expression
-    PostInc            : P16Expression -> P15Expression
-                       : P16Expression -> P15Expression
-                       : P16Expression -> LeftHandSideExpression
-                       : P18Expression -> P16Expression
-                       : P17Expression -> P16Expression
-    MemberName         : IdentifierName -> MemberName
-    Args               : List(AssignmentExpression) -> Arguments
-    MemberAccess       : P17Expression * MemberName -> P17Expression
-    ArrayAccess        : P17Expression * Expression -> P17Expression
-    Call               : P17Expression * Arguments -> P17Expression
-    Call               : P19Expression * Arguments -> P17Expression
-    New                : P18Expression -> P18Expression
-                       : P19Expression -> P18Expression
-    NewArgs            : P19Expression * Arguments -> P19Expression
-    MemberAccess       : P19Expression * MemberName -> P19Expression
-    ArrayAccess        : P19Expression * Expression -> P19Expression
-                       : FunctionExpression -> P19Expression
-                       : P20Expression -> P19Expression
-                       : NumericLiteral -> PropertyName
-                       : StringLiteral -> PropertyName
-                       : IdentifierName -> PropertyName
-    PropertySet        : PropertyName * Identifier * FunctionBody -> PropertyAssignment
-    PropertyGet        : PropertyName * FunctionBody -> PropertyAssignment
-    PropertyAssignment : PropertyName * AssignmentExpression -> PropertyAssignment
-    Object             : List(PropertyAssignment) -> ObjectLiteral
-    Element            : AssignmentExpression -> ArrayElement
-    EmptyElement       : ArrayElement
-    Array              : List(ArrayElement) -> ArrayLiteral
-    Array              : ArrayLiteral
-                       : Expression -> P20Expression
-                       : ObjectLiteral -> P20Expression
-                       : ArrayLiteral -> P20Expression
-                       : Literal -> P20Expression
-                       : Identifier -> P20Expression
-    This               : P20Expression
-    Finally            : Block -> Finally
-    Catch              : Identifier * Block -> Catch
-    Default            : List(Statement) -> CaseClause
-    Case               : Expression * List(Statement) -> CaseClause
-    Init               : AssignmentExpressionNoIn -> InitialiserNoIn
-    VarDecInit         : Identifier * InitialiserNoIn -> VarDeclarationNoIn
-    VarDec             : Identifier -> VarDeclarationNoIn
-                       : AssignmentExpression -> AssignmentExpressionNoIn
-                       : Expression -> ExpressionNoIn
-                       : Expression -> ExpressionStatement
-    Init               : AssignmentExpression -> Initialiser
-    VarDecInit         : Identifier * Initialiser -> VarDeclaration
-    VarDec             : Identifier -> VarDeclaration
-    Throw              : Expression -> AutoSemiStatement
-    Return             : Expression -> AutoSemiStatement
-    Return             : AutoSemiStatement
-    Break              : Identifier -> AutoSemiStatement
-    Break              : AutoSemiStatement
-    Continue           : Identifier -> AutoSemiStatement
-    Continue           : AutoSemiStatement
-    Do                 : Statement * Expression -> AutoSemiStatement
-    Expression         : ExpressionStatement -> AutoSemiStatement
-    Var                : List(VarDeclaration) -> AutoSemiStatement
-                       : SemiStatement -> Statement
-    Debugger           : Statement
-    TryCatchFinally    : Block * Catch * Finally -> Statement
-    TryFinally         : Block * Finally -> Statement
-    TryCatch           : Block * Catch -> Statement
-    Labelled           : Identifier * Statement -> Statement
-    Switch             : Expression * List(CaseClause) -> Statement
-    With               : Expression * Statement -> Statement
-    ForIn              : VarDeclarationNoIn * Expression * Statement -> Statement
-    ForIn              : LeftHandSideExpression * Expression * Statement -> Statement
-    For                : List(VarDeclarationNoIn) * Option(Expression) * Option(Expression) * Statement -> Statement
-    For                : Option(ExpressionNoIn) * Option(Expression) * Option(Expression) * Statement -> Statement
-    While              : Expression * Statement -> Statement
-    IfElse             : Expression * Statement * Statement -> Statement
-    If                 : Expression * Statement -> Statement
-    Empty              : Statement
-                       : Block -> Statement
-    Block              : List(Statement) -> Block
-    FunctionBody       : List(SourceElement) -> FunctionBody
-    Lambda             : List(Identifier) * FunctionBody -> FunctionExpression
-                       : FunctionDeclaration -> FunctionExpression
-    Function           : Identifier * List(Identifier) * FunctionBody -> FunctionDeclaration
-                       : Statement -> SourceElement
-                       : FunctionDeclaration -> SourceElement
-    Program            : List(SourceElement) -> Program
+    Identifier         : JavaScriptIdentifierName -> JavaScriptIdentifier
+                       : String -> JavaScriptIdentifierName
+                       : String -> JavaScriptRegExpLiteral
+    SingleQuotedString : JavaScriptSingleQuotedString -> JavaScriptStringLiteral
+    DoubleQuotedString : JavaScriptDoubleQuotedString -> JavaScriptStringLiteral
+                       : String -> JavaScriptSingleQuotedString
+                       : String -> JavaScriptDoubleQuotedString
+                       : String -> JavaScriptHexIntegerLiteral
+                       : String -> JavaScriptDecimalLiteral
+    HexInt             : JavaScriptHexIntegerLiteral -> JavaScriptNumericLiteral
+    Decimal            : JavaScriptDecimalLiteral -> JavaScriptNumericLiteral
+    False              : JavaScriptBooleanLiteral
+    True               : JavaScriptBooleanLiteral
+    Null               : JavaScriptNullLiteral
+    RegExp             : JavaScriptRegExpLiteral -> JavaScriptLiteral
+    String             : JavaScriptStringLiteral -> JavaScriptLiteral
+    Number             : JavaScriptNumericLiteral -> JavaScriptLiteral
+    Boolean            : JavaScriptBooleanLiteral -> JavaScriptLiteral
+                       : JavaScriptNullLiteral -> JavaScriptLiteral
+    EOBStm             : JavaScriptAutoSemiStatement * JavaScriptEOB -> JavaScriptSemiStatement
+    EOFStm             : JavaScriptAutoSemiStatement * JavaScriptEOF -> JavaScriptSemiStatement
+    EOLStm             : JavaScriptAutoSemiStatement * JavaScriptEOL -> JavaScriptSemiStatement
+    SemiStm            : JavaScriptAutoSemiStatement -> JavaScriptSemiStatement
+                       : String -> JavaScriptEOF
+                       : String -> JavaScriptEOB
+                       : String -> JavaScriptEOL
+                       : JavaScriptExpression -> JavaScriptAssignmentExpression
+    Choice             : JavaScriptAssignmentExpression * JavaScriptAssignmentExpression -> JavaScriptChoice
+    In                 : JavaScriptExpression * JavaScriptExpression -> JavaScriptInExpression
+    MemberName         : JavaScriptIdentifierName -> JavaScriptMemberName
+    Subscript          : JavaScriptExpression -> JavaScriptArraySubscript
+    Args               : List(JavaScriptAssignmentExpression) -> JavaScriptArguments
+                       : JavaScriptExpression -> JavaScriptLeftHandSideExpression
+                       : JavaScriptNumericLiteral -> JavaScriptPropertyName
+                       : JavaScriptStringLiteral -> JavaScriptPropertyName
+                       : JavaScriptIdentifierName -> JavaScriptPropertyName
+    PropertySet        : JavaScriptPropertyName * JavaScriptIdentifier * JavaScriptFunctionBody -> JavaScriptPropertyAssignment
+    PropertyGet        : JavaScriptPropertyName * JavaScriptFunctionBody -> JavaScriptPropertyAssignment
+    PropertyAssignment : JavaScriptPropertyName * JavaScriptAssignmentExpression -> JavaScriptPropertyAssignment
+    Object             : List(JavaScriptPropertyAssignment) -> JavaScriptObjectLiteral
+    Element            : JavaScriptAssignmentExpression -> JavaScriptArrayElement
+    EmptyElement       : JavaScriptArrayElement
+    Array              : List(JavaScriptArrayElement) -> JavaScriptArrayLiteral
+    Array              : JavaScriptArrayLiteral
+    Comma              : JavaScriptExpression * JavaScriptExpression -> JavaScriptExpression
+    AssignOr           : JavaScriptLeftHandSideExpression * JavaScriptExpression -> JavaScriptExpression
+    AssignXor          : JavaScriptLeftHandSideExpression * JavaScriptExpression -> JavaScriptExpression
+    AssignAnd          : JavaScriptLeftHandSideExpression * JavaScriptExpression -> JavaScriptExpression
+    AssignURightShift  : JavaScriptLeftHandSideExpression * JavaScriptExpression -> JavaScriptExpression
+    AssignRightShift   : JavaScriptLeftHandSideExpression * JavaScriptExpression -> JavaScriptExpression
+    AssignLeftShift    : JavaScriptLeftHandSideExpression * JavaScriptExpression -> JavaScriptExpression
+    AssignMinus        : JavaScriptLeftHandSideExpression * JavaScriptExpression -> JavaScriptExpression
+    AssignPlus         : JavaScriptLeftHandSideExpression * JavaScriptExpression -> JavaScriptExpression
+    AssignRem          : JavaScriptLeftHandSideExpression * JavaScriptExpression -> JavaScriptExpression
+    AssignDiv          : JavaScriptLeftHandSideExpression * JavaScriptExpression -> JavaScriptExpression
+    AssignMul          : JavaScriptLeftHandSideExpression * JavaScriptExpression -> JavaScriptExpression
+    Assign             : JavaScriptLeftHandSideExpression * JavaScriptExpression -> JavaScriptExpression
+    Conditional        : JavaScriptExpression * JavaScriptChoice -> JavaScriptExpression
+    Or                 : JavaScriptExpression * JavaScriptExpression -> JavaScriptExpression
+    And                : JavaScriptExpression * JavaScriptExpression -> JavaScriptExpression
+    BitOr              : JavaScriptExpression * JavaScriptExpression -> JavaScriptExpression
+    BitXor             : JavaScriptExpression * JavaScriptExpression -> JavaScriptExpression
+    BitAnd             : JavaScriptExpression * JavaScriptExpression -> JavaScriptExpression
+    StrictNotEquals    : JavaScriptExpression * JavaScriptExpression -> JavaScriptExpression
+    StrictEquals       : JavaScriptExpression * JavaScriptExpression -> JavaScriptExpression
+    NotEquals          : JavaScriptExpression * JavaScriptExpression -> JavaScriptExpression
+    Equals             : JavaScriptExpression * JavaScriptExpression -> JavaScriptExpression
+                       : JavaScriptInExpression -> JavaScriptExpression
+    InstanceOf         : JavaScriptExpression * JavaScriptExpression -> JavaScriptExpression
+    LessEquals         : JavaScriptExpression * JavaScriptExpression -> JavaScriptExpression
+    GreaterThan        : JavaScriptExpression * JavaScriptExpression -> JavaScriptExpression
+    LessThan           : JavaScriptExpression * JavaScriptExpression -> JavaScriptExpression
+    URightShift        : JavaScriptExpression * JavaScriptExpression -> JavaScriptExpression
+    RightShift         : JavaScriptExpression * JavaScriptExpression -> JavaScriptExpression
+    LeftShift          : JavaScriptExpression * JavaScriptExpression -> JavaScriptExpression
+    Minus              : JavaScriptExpression * JavaScriptExpression -> JavaScriptExpression
+    Plus               : JavaScriptExpression * JavaScriptExpression -> JavaScriptExpression
+    Remainder          : JavaScriptExpression * JavaScriptExpression -> JavaScriptExpression
+    Divide             : JavaScriptExpression * JavaScriptExpression -> JavaScriptExpression
+    Times              : JavaScriptExpression * JavaScriptExpression -> JavaScriptExpression
+    Not                : JavaScriptExpression -> JavaScriptExpression
+    BitNot             : JavaScriptExpression -> JavaScriptExpression
+    UnaryMinus         : JavaScriptExpression -> JavaScriptExpression
+    UnaryPlus          : JavaScriptExpression -> JavaScriptExpression
+    PreDec             : JavaScriptExpression -> JavaScriptExpression
+    PreInc             : JavaScriptExpression -> JavaScriptExpression
+    Typeof             : JavaScriptExpression -> JavaScriptExpression
+    Void               : JavaScriptExpression -> JavaScriptExpression
+    Delete             : JavaScriptExpression -> JavaScriptExpression
+    PostDec            : JavaScriptExpression -> JavaScriptExpression
+    PostInc            : JavaScriptExpression -> JavaScriptExpression
+    Call               : JavaScriptExpression * JavaScriptArguments -> JavaScriptExpression
+    New                : JavaScriptExpression -> JavaScriptExpression
+    NewArgs            : JavaScriptExpression * JavaScriptArguments -> JavaScriptExpression
+    MemberAccess       : JavaScriptExpression * JavaScriptMemberName -> JavaScriptExpression
+    ArrayAccess        : JavaScriptExpression * JavaScriptArraySubscript -> JavaScriptExpression
+                       : JavaScriptFunctionExpression -> JavaScriptExpression
+    Parenthesis        : JavaScriptExpression -> JavaScriptExpression
+                       : JavaScriptObjectLiteral -> JavaScriptExpression
+                       : JavaScriptArrayLiteral -> JavaScriptExpression
+                       : JavaScriptLiteral -> JavaScriptExpression
+                       : JavaScriptIdentifier -> JavaScriptExpression
+    This               : JavaScriptExpression
+    Finally            : JavaScriptBlock -> JavaScriptFinally
+    Catch              : JavaScriptIdentifier * JavaScriptBlock -> JavaScriptCatch
+    Default            : List(JavaScriptStatement) -> JavaScriptCaseClause
+    Case               : JavaScriptExpression * List(JavaScriptStatement) -> JavaScriptCaseClause
+    Init               : JavaScriptAssignmentExpressionNoIn -> JavaScriptInitialiserNoIn
+    VarDecInit         : JavaScriptIdentifier * JavaScriptInitialiserNoIn -> JavaScriptVarDeclarationNoIn
+    VarDec             : JavaScriptIdentifier -> JavaScriptVarDeclarationNoIn
+                       : JavaScriptAssignmentExpression -> JavaScriptAssignmentExpressionNoIn
+                       : JavaScriptExpression -> JavaScriptExpressionNoIn
+                       : JavaScriptExpression -> JavaScriptExpressionStatement
+    Init               : JavaScriptAssignmentExpression -> JavaScriptInitialiser
+    VarDecInit         : JavaScriptIdentifier * JavaScriptInitialiser -> JavaScriptVarDeclaration
+    VarDec             : JavaScriptIdentifier -> JavaScriptVarDeclaration
+    Throw              : JavaScriptExpression -> JavaScriptAutoSemiStatement
+    Return             : JavaScriptExpression -> JavaScriptAutoSemiStatement
+    Return             : JavaScriptAutoSemiStatement
+    Break              : JavaScriptIdentifier -> JavaScriptAutoSemiStatement
+    Break              : JavaScriptAutoSemiStatement
+    Continue           : JavaScriptIdentifier -> JavaScriptAutoSemiStatement
+    Continue           : JavaScriptAutoSemiStatement
+    Do                 : JavaScriptStatement * JavaScriptExpression -> JavaScriptAutoSemiStatement
+    Expression         : JavaScriptExpressionStatement -> JavaScriptAutoSemiStatement
+    Var                : List(JavaScriptVarDeclaration) -> JavaScriptAutoSemiStatement
+                       : JavaScriptSemiStatement -> JavaScriptStatement
+    Debugger           : JavaScriptStatement
+    TryCatchFinally    : JavaScriptBlock * JavaScriptCatch * JavaScriptFinally -> JavaScriptStatement
+    TryFinally         : JavaScriptBlock * JavaScriptFinally -> JavaScriptStatement
+    TryCatch           : JavaScriptBlock * JavaScriptCatch -> JavaScriptStatement
+    Labelled           : JavaScriptIdentifier * JavaScriptStatement -> JavaScriptStatement
+    Switch             : JavaScriptExpression * List(JavaScriptCaseClause) -> JavaScriptStatement
+    With               : JavaScriptExpression * JavaScriptStatement -> JavaScriptStatement
+    ForIn              : JavaScriptVarDeclarationNoIn * JavaScriptExpression * JavaScriptStatement -> JavaScriptStatement
+    ForIn              : JavaScriptLeftHandSideExpression * JavaScriptExpression * JavaScriptStatement -> JavaScriptStatement
+    For                : List(JavaScriptVarDeclarationNoIn) * Option(JavaScriptExpression) * Option(JavaScriptExpression) * JavaScriptStatement -> JavaScriptStatement
+    For                : Option(JavaScriptExpressionNoIn) * Option(JavaScriptExpression) * Option(JavaScriptExpression) * JavaScriptStatement -> JavaScriptStatement
+    While              : JavaScriptExpression * JavaScriptStatement -> JavaScriptStatement
+    IfElse             : JavaScriptExpression * JavaScriptStatement * JavaScriptStatement -> JavaScriptStatement
+    If                 : JavaScriptExpression * JavaScriptStatement -> JavaScriptStatement
+    Empty              : JavaScriptStatement
+                       : JavaScriptBlock -> JavaScriptStatement
+    Block              : List(JavaScriptStatement) -> JavaScriptBlock
+    FunctionBody       : List(JavaScriptSourceElement) -> JavaScriptFunctionBody
+    Lambda             : List(JavaScriptIdentifier) * JavaScriptFunctionBody -> JavaScriptFunctionExpression
+                       : JavaScriptFunctionDeclaration -> JavaScriptFunctionExpression
+    Function           : JavaScriptIdentifier * List(JavaScriptIdentifier) * JavaScriptFunctionBody -> JavaScriptFunctionDeclaration
+                       : JavaScriptStatement -> JavaScriptSourceElement
+                       : JavaScriptFunctionDeclaration -> JavaScriptSourceElement
+    Program            : List(JavaScriptSourceElement) -> JavaScriptProgram
 
 
 signature

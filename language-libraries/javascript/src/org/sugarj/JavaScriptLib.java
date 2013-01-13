@@ -1,7 +1,5 @@
 package org.sugarj;
 
-// TODO: revisit as only PrologLib modified to compile
-
 import static org.sugarj.common.ATermCommands.getApplicationSubterm;
 import static org.sugarj.common.ATermCommands.isApplication;
 import static org.sugarj.common.Log.log;
@@ -43,6 +41,7 @@ public class JavaScriptLib extends LanguageLib implements Serializable {
 
   private JavaScriptSourceFileContent jsSource;
 
+  private static final String MODULE_SEP = "/";
   private String decName;
   private String relNamespaceName;
     
@@ -59,7 +58,7 @@ public class JavaScriptLib extends LanguageLib implements Serializable {
 
   private File getPrettyPrint() {
     if (prettyPrint == null)
-      prettyPrint = ensureFile("org/sugarj/languages/JavaScript-51.pp");
+      prettyPrint = ensureFile("org/sugarj/languages/JavaScript.pp");
     
     return prettyPrint;
   }
@@ -68,7 +67,7 @@ public class JavaScriptLib extends LanguageLib implements Serializable {
   public List<File> getGrammars() {
     List<File> grammars = new LinkedList<File>(super.getGrammars());
     grammars.add(ensureFile("org/sugarj/languages/SugarJS.def"));
-    grammars.add(ensureFile("org/sugarj/languages/JavaScript-51.def"));
+    grammars.add(ensureFile("org/sugarj/languages/JavaScript.def"));
     return Collections.unmodifiableList(grammars);
   }
   
@@ -154,12 +153,12 @@ public class JavaScriptLib extends LanguageLib implements Serializable {
 
     @Override
     public boolean isSugarDec(IStrategoTerm decl) {
-      return isApplication(decl, "SugarBody");           
+      return isApplication(decl, "SugarDec");           
     }
     
     @Override
     public boolean isNamespaceDec(IStrategoTerm decl) {
-      return isApplication(decl, "SugarModule");
+      return isApplication(decl, "SugarModuleDec");
     }
     
     @Override
@@ -219,8 +218,8 @@ public class JavaScriptLib extends LanguageLib implements Serializable {
   
   @Override
   public String prettyPrint(IStrategoTerm term) throws IOException {
-    //IStrategoTerm ppTable = initializePrettyPrinter(interp.getCompiledContext());
-    return term.toString();    //ATermCommands.prettyPrint(ppTable, term, interp);
+    IStrategoTerm ppTable = initializePrettyPrinter(interp.getCompiledContext());
+    return ATermCommands.prettyPrint(ppTable, term, interp);
   }
 
   @Override
@@ -246,9 +245,10 @@ public class JavaScriptLib extends LanguageLib implements Serializable {
       RelativePath sourceFile,
       RelativePath sourceFileFromResult) throws IOException {
     
-    String moduleName = prettyPrint(getApplicationSubterm(toplevelDecl, "SugarModule", 0));
+    String modulePath = extractModulePath(toplevelDecl);
     
-    decName = getRelativeModulePath(moduleName);
+    relNamespaceName = extractRelativeNamespace(modulePath);
+    decName = extractSugarName(modulePath);
     log.log("The SDF / Stratego package name is '" + relNamespaceName + "'.", Log.DETAIL);
     
   }  
@@ -265,17 +265,47 @@ public class JavaScriptLib extends LanguageLib implements Serializable {
   
   @Override
   public String getImportedModulePath(IStrategoTerm toplevelDecl) throws IOException {
-    String modulePath = prettyPrint(toplevelDecl.getSubterm(0).getSubterm(0));
-    return modulePath;    
+    String modulePath = extractModulePath(toplevelDecl);
+    return getRelativeModulePath(modulePath);    
+  }
+  
+  // Module paths come in double quoted strings so strip them off
+  private String extractModulePath(IStrategoTerm modDecl) {
+    String decl = modDecl.getSubterm(0).toString();
+    if(1 < decl.length()) {
+      return decl.substring(1, decl.length() - 1);
+    } else {
+      return "";
+    }
+  }
+  
+  // The path up to the last "/"
+  private String extractRelativeNamespace(String modulePath) {
+    int pos = modulePath.lastIndexOf(MODULE_SEP);
+    if(pos != -1) {
+	  return modulePath.substring(0, pos - 1);
+    } else {
+      return "";
+    }
+  }
+  
+  // The end of the path, after the last "/"
+  private String extractSugarName(String modulePath) {
+    int pos = modulePath.lastIndexOf(MODULE_SEP);
+    if(pos != -1) {
+      return modulePath.substring(pos + 1);
+	} else {
+      return modulePath;
+    }
   }
   
   private String getRelativeModulePath(String moduleName) {
-    return moduleName.replace("/", Environment.sep);
+    return moduleName.replace(MODULE_SEP, Environment.sep);
   }
   
   @Override
   public void addImportModule(IStrategoTerm toplevelDecl, boolean checked) {
-    throw new UnsupportedOperationException("SugarJS does not support JavaScript imports");  
+    // All imports are pure sugar so no need to add to source file  
   }
 
   @Override
@@ -283,13 +313,10 @@ public class JavaScriptLib extends LanguageLib implements Serializable {
         return decName;
   }
 
-
   @Override
   public IStrategoTerm getSugarBody(IStrategoTerm decl) {
     IStrategoTerm sugarBody = getApplicationSubterm(decl, "SugarBody", 0);
-    
     return sugarBody;
-
   }
   
   @Override

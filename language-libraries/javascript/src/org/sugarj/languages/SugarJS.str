@@ -1,9 +1,25 @@
 module org/sugarj/languages/SugarJS
-imports org/sugarj/languages/Sugar
-signature constructors
-    CompilationUnit        : SugarOrJavaScript -> SugarCompilationUnit
-    JavaScript51        : JavaScriptProgram -> SugarOrJavaScript
-    Sugar             : SugarModule * SugarBody -> SugarOrJavaScript
-    SugarModule : Id -> SugarModule
-                : String -> Id
-    SugarBody : SugarDefElem -> SugarBody    
+
+signature
+  constructors
+    SugarBody       : SugarDefElem -> SugarBody
+    SugarDec        : SugarBody -> SugarDec
+    SugarModuleDec  : SugarModule -> SugarModuleDec
+    SugarImportDec  : SugarModule -> SugarImportDec
+    Sugar           : SugarModuleDec * List(SugarImportDec) * SugarDec -> SugarOrJavaScript
+    JavaScript      : List(SugarImportDec) * JavaScriptProgram -> SugarOrJavaScript
+    CompilationUnit : SugarOrJavaScript -> SugarCompilationUnit
+                    : String -> SugarModule
+
+
+signature
+  constructors
+    Some : a -> Option(a)
+    None : Option(a)
+
+
+signature
+  constructors
+    Cons : a * List(a) -> List(a)
+    Nil  : List(a)
+    Conc : List(a) * List(a) -> List(a)
