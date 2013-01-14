@@ -4,8 +4,6 @@ definition
 %%  Missing full Unicode support
 
 %% Known bugs:
-%% new x().y()  - ambiguous
-%% new x()[0]() - ambiguous
 %% "{} [0]" and "function x() {} [0]" should both parse as two statements
 %%    but they produce ambiguous results 
     
@@ -298,16 +296,23 @@ module javascript-51/Expressions
 
     %% 11.2 Left-Hand-Side Expressions
     sorts
-      Arguments MemberName LeftHandSideExpression ArraySubscript
+      Arguments MemberName LeftHandSideExpression ArraySubscript NewExpression CallExpression
       
     context-free syntax
       FunctionExpression         -> Expression
       Expression ArraySubscript  -> Expression {cons("ArrayAccess")}
       Expression "." MemberName  -> Expression {cons("MemberAccess")}
       "new" Expression Arguments -> Expression {cons("NewArgs")}
-      "new" Expression           -> Expression {cons("New")}
-      Expression Arguments       -> Expression {cons("Call")}
-      Expression                 -> LeftHandSideExpression
+      
+      %% Ambiguity with NewArgs, New, Call, Call[x], Call.x is difficult to address with priorities
+      "new" Expression              -> NewExpression {cons("New")}
+      NewExpression                 -> Expression
+      Expression Arguments          -> CallExpression {cons("Call")}
+      CallExpression ArraySubscript -> CallExpression {cons("ArrayAccess")}
+      CallExpression "." MemberName -> CallExpression {cons("MemberAccess")}
+      CallExpression                -> Expression
+
+      Expression                    -> LeftHandSideExpression
       
       "(" {AssignmentExpression ","}* ")" -> Arguments {cons("Args")}
       
@@ -413,16 +418,7 @@ module javascript-51/Expressions
 
 module javascript-51/Priorities
   exports
-    
-    %% Lots of ambiguity with NewArgs, New and Call
-    %% new X()     - NewArgs(X)               NOT New(Call(X)) or Call(New(X))
-    %% new new X() - New(NewArgs(X))          NOT NewArgs(New(X))
-    %% new X()()   - Call(NewArgs(X))         NOT NewArgs(Call(X))
-    %% new X()[0]  - ArrayAccess(NewArgs(X))  NOT New(ArrayAccess(Call(X)))
-    %% new X().m   - MemberAccess(NewArgs(X)) NOT New(MemberAccess(Call(X)))
-    %% new X[0]    - New(ArrayAccess(X,0))    NOT ArrayAccess(New(X),0)
-    %% new X.m     - New(MemberAccess(X,m))   NOT MemberAccess(New(X),m)
-    
+     
     context-free priorities
     {
       Expression ArraySubscript  -> Expression
@@ -430,27 +426,16 @@ module javascript-51/Priorities
       "new" Expression Arguments -> Expression
     }
     >
-      "new" Expression           -> Expression {avoid}
-    
-    context-free priorities
-      "new" Expression Arguments -> Expression
-    >
-      Expression Arguments       -> Expression
-
-    %% Prohibit Call(New) and New(Call)
-    context-free priorities
-      Expression Arguments       -> Expression
-    .>
-      "new" Expression           -> Expression {avoid}
-    .>
-      Expression Arguments       -> Expression
-     
-     %% Priorities for the rest of the expressions are strightforward          
-    context-free priorities
     {
-      "new" Expression           -> Expression
-      Expression Arguments       -> Expression
-      
+      "new" Expression              -> NewExpression
+      Expression Arguments          -> CallExpression
+      CallExpression ArraySubscript -> CallExpression
+      CallExpression "." MemberName -> CallExpression
+    }
+    >
+    {
+      NewExpression              -> Expression
+      CallExpression             -> Expression
       Expression                 -> LeftHandSideExpression
     }
     >
@@ -741,4 +726,6 @@ imports JavaScript-51
     SourceElement=> JavaScriptSourceElement
     ArraySubscript => JavaScriptArraySubscript
     Choice => JavaScriptChoice
-    Parenthesis => JavaScriptParenthesis]
+    Parenthesis => JavaScriptParenthesis
+    NewExpression => JavaScriptNewExpression
+    CallExpression => JavaScriptCallExpression]

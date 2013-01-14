@@ -35,6 +35,9 @@ signature
     Subscript          : JavaScriptExpression -> JavaScriptArraySubscript
     Args               : List(JavaScriptAssignmentExpression) -> JavaScriptArguments
                        : JavaScriptExpression -> JavaScriptLeftHandSideExpression
+    ArrayAccess        : JavaScriptCallExpression * JavaScriptArraySubscript -> JavaScriptCallExpression
+    Call               : JavaScriptExpression * JavaScriptArguments -> JavaScriptCallExpression
+    New                : JavaScriptExpression -> JavaScriptNewExpression
                        : JavaScriptNumericLiteral -> JavaScriptPropertyName
                        : JavaScriptStringLiteral -> JavaScriptPropertyName
                        : JavaScriptIdentifierName -> JavaScriptPropertyName
@@ -71,6 +74,7 @@ signature
     Equals             : JavaScriptExpression * JavaScriptExpression -> JavaScriptExpression
                        : JavaScriptInExpression -> JavaScriptExpression
     InstanceOf         : JavaScriptExpression * JavaScriptExpression -> JavaScriptExpression
+    GreateEquals       : JavaScriptExpression * JavaScriptExpression -> JavaScriptExpression
     LessEquals         : JavaScriptExpression * JavaScriptExpression -> JavaScriptExpression
     GreaterThan        : JavaScriptExpression * JavaScriptExpression -> JavaScriptExpression
     LessThan           : JavaScriptExpression * JavaScriptExpression -> JavaScriptExpression
@@ -93,8 +97,8 @@ signature
     Delete             : JavaScriptExpression -> JavaScriptExpression
     PostDec            : JavaScriptExpression -> JavaScriptExpression
     PostInc            : JavaScriptExpression -> JavaScriptExpression
-    Call               : JavaScriptExpression * JavaScriptArguments -> JavaScriptExpression
-    New                : JavaScriptExpression -> JavaScriptExpression
+                       : JavaScriptCallExpression -> JavaScriptExpression
+                       : JavaScriptNewExpression -> JavaScriptExpression
     NewArgs            : JavaScriptExpression * JavaScriptArguments -> JavaScriptExpression
     MemberAccess       : JavaScriptExpression * JavaScriptMemberName -> JavaScriptExpression
     ArrayAccess        : JavaScriptExpression * JavaScriptArraySubscript -> JavaScriptExpression
