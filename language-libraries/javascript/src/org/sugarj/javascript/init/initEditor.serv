@@ -43,27 +43,15 @@ folding
   EditorServiceSection
   SugarDefElem
   SugarDec
-  JavaFieldDec
-  JavaMethodDec    
-  JavaClassDec     
-  JavaInterfaceDec
-  JavaEnumDec 
-  JavaConstrDec
-  JavaNewInstance
-  JavaQNewInstance
+  JavaScriptProgram
+  JavaScriptSourceElement    
 
 outliner
   ToplevelDeclaration
   SugarDec
-  JavaFieldDec
-  JavaMethodDec    
-  JavaClassDec     
-  JavaInterfaceDec
-  JavaEnumDec 
-  JavaConstrDec
-  JavaNewInstance
-  JavaQNewInstance
-
+  JavaScriptProgram
+  JavaScriptSourceElement    
+ 
   completions SDF
     completion template : SugarDefElem =
       "context-free syntax" "\n\t" (blank)

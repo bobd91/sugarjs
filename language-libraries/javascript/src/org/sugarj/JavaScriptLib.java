@@ -219,7 +219,7 @@ public class JavaScriptLib extends LanguageLib implements Serializable {
   @Override
   public String prettyPrint(IStrategoTerm term) throws IOException {
     IStrategoTerm ppTable = initializePrettyPrinter(interp.getCompiledContext());
-    return ATermCommands.prettyPrint(ppTable, term, interp);
+    return term.toString(); //ATermCommands.prettyPrint(ppTable, term, interp);
   }
 
   @Override
