@@ -12,11 +12,14 @@ exports
   lexical syntax
     [\ \t\12\r\n] -> LAYOUT
 
+  context-free restrictions
+    LAYOUT? -/- [\ \t\12\r\n]
+
   context-free syntax 
     JavaScriptProgram -> ToplevelDeclaration
     SugarModuleDec    -> ToplevelDeclaration
-    SugarImportDec    -> TopLevelDeclaration
-    SugarDec          -> TopLevelDeclaration
+    SugarImportDec    -> ToplevelDeclaration
+    SugarDec          -> ToplevelDeclaration
 
   context-free start-symbols
     SugarCompilationUnit
@@ -24,22 +27,19 @@ exports
   context-free syntax
     SugarOrJavaScript  -> SugarCompilationUnit {cons("CompilationUnit")}
 
-    SugarImportDec* JavaScriptProgram       -> SugarOrJavaScript {cons("JavaScript")}
-    SugarModuleDec SugarImportDec* SugarDec -> SugarOrJavaScript {cons("Sugar")}
+    SugarImportDec* JavaScriptProgram        -> SugarOrJavaScript {cons("JavaScript")}
+    SugarModuleDec SugarImportDec* SugarBody -> SugarOrJavaScript {cons("SugarJS")}
 
-    %% SugarJS module and import decs are similar to proposals for JavaScript v6
-    "import" SugarModule       -> SugarImportDec {cons("SugarImportDec")}  
     "module" SugarModule       -> SugarModuleDec {cons("SugarModuleDec")}
-    
+    "import" SugarModule       -> SugarImportDec {cons("SugarImportDec")}  
     "sugar" SugarBody          -> SugarDec {cons("SugarDec")}
-
-    "{" SugarDefElem "}"       -> SugarBody {cons("SugarBody")}
-
+    
+    "{" SugarDefElem* "}"      -> SugarBody {cons("SugarBody")}
     
     lexical syntax
-      [\"] {SugarId "/"}+ [\"]  -> SugarModule
-      [A-Za-z][A-Za-z0-9]*      -> SugarId
+      {SugarId "/"}+        -> SugarModule
+      [A-Za-z0-9\-\_]+      -> SugarId
   
     lexical restrictions
-      SugarId "sugar" "module" "import" -/- [A-Za-z0-9]
+      SugarId "module" -/- [A-Za-z0-9]
       

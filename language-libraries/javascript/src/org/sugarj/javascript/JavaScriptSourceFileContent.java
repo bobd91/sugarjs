@@ -11,23 +11,29 @@ public class JavaScriptSourceFileContent extends SourceFileContent {
   
   private static final long serialVersionUID = 1718569642175495936L;
 
-  String program;
+  // The program code is collected in sections, usually just one
+  // but could be more if sugar is mixed in with the JavaScript
+  StringBuilder code = new StringBuilder();
 
   @Override
   public boolean isEmpty() {
-    return null == program;
+    return 0 == code.length();
   }
 
-  public void setProgram(String program) {
-    this.program = program;
+  // Add a new section of program 
+  public void addProgram(String program) {
+    if(!isEmpty()) {
+      code.append('\n');
+    }
+    code.append(program);
   }
 
   public String getCode(Set<RelativePath> generatedFiles, HybridInterpreter interp, Path outFile) {
-    return program;
+    return code.toString();
   }
   
   public int hashCode() {
-    return program.hashCode();
+    return code.hashCode();
   }
 
   public boolean equals(Object o) {
@@ -37,8 +43,7 @@ public class JavaScriptSourceFileContent extends SourceFileContent {
     JavaScriptSourceFileContent other = (JavaScriptSourceFileContent) o;
     return other.isEmpty()
            ? isEmpty()
-           : other.program.equals(program);
+           : other.code.equals(code);
   }
-
   
 }

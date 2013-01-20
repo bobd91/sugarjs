@@ -129,7 +129,7 @@ module javascript-51/Identifiers
 %% 7.8.2 Boolean Literals
 %% 7.8.3 Numeric Literals
 %% 7.8.4 String Literals
-%% 7.8.5 regular Expression Literals
+%% 7.8.5 Regular Expression Literals
 module javascript-51/Literals
   exports
     
@@ -179,8 +179,8 @@ module javascript-51/Literals
       SingleQuotedString  -> StringLiteral {cons("SingleQuotedString")}
         
     lexical syntax
-      "\"" DoubleStringChar* "\"" -> DoubleQuotedString
-      "'" SingleStringChar* "'"   -> SingleQuotedString
+      [\"] DoubleStringChar* [\"] -> DoubleQuotedString
+      [\'] SingleStringChar* [\'] -> SingleQuotedString
 
       ~[\"\\\r\n]                 -> DoubleStringChar
       [\\] EscapeSequence         -> DoubleStringChar
@@ -305,6 +305,7 @@ module javascript-51/Expressions
       "new" Expression Arguments -> Expression {cons("NewArgs")}
       
       %% Ambiguity with NewArgs, New, Call, Call[x], Call.x is difficult to address with priorities
+      %% So we use NewExpression/CallExpression to keep them apart
       "new" Expression              -> NewExpression {cons("New")}
       NewExpression                 -> Expression
       Expression Arguments          -> CallExpression {cons("Call")}
@@ -545,6 +546,8 @@ module javascript-51/Statements
       
       %% 12.4 Expression Statement
       %% Reject expressions starting with { or 'function'
+      %% Though this doesn't seem to work in all cases
+      %% See bug at top of file
       Expression -> ExpressionStatement
       "{" ~[]* -> ExpressionStatement {reject}
       "function" ~[]* -> ExpressionStatement {reject}
@@ -632,8 +635,8 @@ module javascript-51/Functions
 module javascript-51/Program
   exports
     
-    context-free start-symbols
-      Program
+    %% context-free start-symbols
+    %%  Program
     
     sorts
       Program SourceElement

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feature
+      id="org.sugarj.javascript"
+      label="SugarJ JavaScript"
+      version="1.0.0.qualifier">
+
+   <description url="https://github.com/bobd91/sugarjs">
+      JavaScript plugin for SugarJ (see www.sugarj.org)
+   </description>
+
+   <copyright>
+      Copyright Bob Davison, 2013
+   </copyright>
+
+   <license url="">
+      None as yet
+   </license>
+
+   <requires>
+      <import plugin="org.eclipse.ui"/>
+      <import plugin="org.eclipse.core.runtime"/>
+      <import plugin="org.sugarj.stdlib"/>
+      <import plugin="org.spoofax.terms"/>
+      <import plugin="org.strategoxt.imp.nativebundle"/>
+      <import plugin="org.strategoxt.imp.runtime"/>
+      <import plugin="org.strategoxt.strj"/>
+      <import plugin="org.sugarj.languagelib"/>
+      <import plugin="org.sugarj.common"/>
+      <import plugin="org.eclipse.jdt.core"/>
+   </requires>
+
+   <plugin
+         id="org.sugarj.javascript"
+         download-size="0"
+         install-size="0"
+         version="0.0.0"/>
+
+</feature>

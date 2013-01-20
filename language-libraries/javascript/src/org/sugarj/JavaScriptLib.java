@@ -48,9 +48,9 @@ public class JavaScriptLib extends LanguageLib implements Serializable {
   private IStrategoTerm pptable = null;
   private File prettyPrint = null;
 
-  static {
-    log.setLoggingLevel(Log.ALWAYS);
-  }
+//  static {
+//    log.setLoggingLevel(Log.ALWAYS);
+//  }
   
   public String getVersion() {
     return "javascript-0.1";
@@ -124,57 +124,36 @@ public class JavaScriptLib extends LanguageLib implements Serializable {
     
     return libDir;
   }
+      
+  @Override
+  public boolean isLanguageSpecificDec(IStrategoTerm decl) {
+  return isApplication(decl, "Program");        
+  }
+
+  @Override
+  public boolean isSugarDec(IStrategoTerm decl) {
+    return isApplication(decl, "SugarDec");           
+  }
   
-    public static void main(String args[]) throws URISyntaxException {
-    JavaScriptLib jsl = new JavaScriptLib();
-    
-    for (File file : jsl.getGrammars()) 
-      exists(file);
+  @Override
+  public boolean isNamespaceDec(IStrategoTerm decl) {
+    return isApplication(decl, "SugarModuleDec");
+  }
+  
+  @Override
+  public boolean isEditorServiceDec(IStrategoTerm decl) {
+    return isApplication(decl, "EditorServicesDec");   
+  }
 
+  @Override
+  public boolean isImportDec(IStrategoTerm decl) {
+    return isApplication(decl, "SugarImportDec");
+  }
 
-      exists(jsl.getInitGrammar());
-      exists(jsl.getInitTrans());
-      exists(jsl.getInitEditor());
-      exists(jsl.libDir);
-    }
-    
-    private static void exists(File file) {
-      if (file.exists())
-        System.out.println(file.getPath() + " exists.");
-      else
-        System.err.println(file.getPath() + " does not exist.");
-    }
-    
-    
-    @Override
-    public boolean isLanguageSpecificDec(IStrategoTerm decl) {
-    return isApplication(decl, "Program");        
-    }
-
-    @Override
-    public boolean isSugarDec(IStrategoTerm decl) {
-      return isApplication(decl, "SugarDec");           
-    }
-    
-    @Override
-    public boolean isNamespaceDec(IStrategoTerm decl) {
-      return isApplication(decl, "SugarModuleDec");
-    }
-    
-    @Override
-    public boolean isEditorServiceDec(IStrategoTerm decl) {
-      return isApplication(decl, "EditorServicesDec");   
-    }
-
-    @Override
-    public boolean isImportDec(IStrategoTerm decl) {
-      return isApplication(decl, "SugarImportDec");
-    }
-
-    @Override
-    public boolean isPlainDec(IStrategoTerm decl) {
-      return isApplication(decl, "PlainDec");        
-    }
+  @Override
+  public boolean isPlainDec(IStrategoTerm decl) {
+    return isApplication(decl, "PlainDec");        
+  }
 
   @Override
   public String getGeneratedFileExtension() {
@@ -203,7 +182,7 @@ public class JavaScriptLib extends LanguageLib implements Serializable {
 
   @Override
   public void processLanguageSpecific(IStrategoTerm toplevelDecl, Environment environment) throws IOException {
-    jsSource.setProgram(prettyPrint(toplevelDecl));
+    jsSource.addProgram(prettyPrint(toplevelDecl));
   }
 
   
@@ -219,7 +198,7 @@ public class JavaScriptLib extends LanguageLib implements Serializable {
   @Override
   public String prettyPrint(IStrategoTerm term) throws IOException {
     IStrategoTerm ppTable = initializePrettyPrinter(interp.getCompiledContext());
-    return term.toString(); //ATermCommands.prettyPrint(ppTable, term, interp);
+    return ATermCommands.prettyPrint(ppTable, term, interp);
   }
 
   @Override
@@ -229,8 +208,8 @@ public class JavaScriptLib extends LanguageLib implements Serializable {
     relNamespaceName = FileCommands.dropFilename(sourceFile.getRelativePath());
     decName = getRelativeModulePath(
                 FileCommands.dropExtension(
-                    FileCommands.fileName(
-                        sourceFile.getRelativePath())));
+                FileCommands.fileName(
+                sourceFile.getRelativePath())));
   }
 
   @Override
@@ -245,14 +224,13 @@ public class JavaScriptLib extends LanguageLib implements Serializable {
       RelativePath sourceFile,
       RelativePath sourceFileFromResult) throws IOException {
     
-    String modulePath = extractModulePath(toplevelDecl);
-    
-    relNamespaceName = extractRelativeNamespace(modulePath);
-    decName = extractSugarName(modulePath);
+    String modPath = checkModulePath(toplevelDecl, sourceFile, errorLog);
+    relNamespaceName = extractRelativeNamespace(modPath);
+    decName = extractSugarName(modPath);
     log.log("The SDF / Stratego package name is '" + relNamespaceName + "'.", Log.DETAIL);
     
   }  
-
+  
   @Override
   public LanguageLibFactory getFactoryForLanguage() {
     return JavaScriptLibFactory.getInstance();
@@ -261,6 +239,7 @@ public class JavaScriptLib extends LanguageLib implements Serializable {
   @Override
   protected void compile(List<Path> sourceFiles, Path bin, List<Path> path,
       boolean generateFiles) {
+    // No compilation for JavaScript
   }
   
   @Override
@@ -269,34 +248,45 @@ public class JavaScriptLib extends LanguageLib implements Serializable {
     return getRelativeModulePath(modulePath);    
   }
   
-  // Module paths come in double quoted strings so strip them off
-  private String extractModulePath(IStrategoTerm modDecl) {
-    String decl = modDecl.getSubterm(0).toString();
-    if(1 < decl.length()) {
-      return decl.substring(1, decl.length() - 1);
-    } else {
-      return "";
+  // Check that the declared module name matches the source relative path and file name
+  private String checkModulePath(IStrategoTerm modDecl, RelativePath sourceFile, IErrorLogger errorLog) throws IOException {
+    String declaredPath = extractModulePath(modDecl); 
+    if (sourceFile != null) {
+      String expectedPath = FileCommands.dropExtension(sourceFile.getRelativePath());
+      if (!declaredPath.equals(expectedPath))
+        setErrorMessage(modDecl, "The declared module '" + declaredPath + "'" + " does not match the expected package '" + expectedPath + "'.", errorLog);
     }
+    return declaredPath;
+  }
+
+  private String extractModulePath(IStrategoTerm modDecl) throws IOException {
+    // can't pretty print as 'import ...' is not part of JavaScript
+    return stripQuotes(modDecl.getSubterm(0).toString());
+    
+  }
+  
+  private String stripQuotes(String quoted) {
+    return (2 <= quoted.length()
+                  && '\"' == quoted.charAt(0)
+                  && '\"' == quoted.charAt(quoted.length() - 1))
+             ? quoted.substring(1, quoted.length()-1)
+             : quoted;        	
   }
   
   // The path up to the last "/"
   private String extractRelativeNamespace(String modulePath) {
     int pos = modulePath.lastIndexOf(MODULE_SEP);
-    if(pos != -1) {
-	  return modulePath.substring(0, pos - 1);
-    } else {
-      return "";
-    }
+    return (pos != -1)
+             ? modulePath.substring(0, pos)
+             : "";
   }
   
   // The end of the path, after the last "/"
   private String extractSugarName(String modulePath) {
     int pos = modulePath.lastIndexOf(MODULE_SEP);
-    if(pos != -1) {
-      return modulePath.substring(pos + 1);
-	} else {
-      return modulePath;
-    }
+    return (pos != -1)
+             ? modulePath.substring(pos + 1)
+             : modulePath;
   }
   
   private String getRelativeModulePath(String moduleName) {
@@ -315,8 +305,8 @@ public class JavaScriptLib extends LanguageLib implements Serializable {
 
   @Override
   public IStrategoTerm getSugarBody(IStrategoTerm decl) {
-    IStrategoTerm sugarBody = getApplicationSubterm(decl, "SugarBody", 0);
-    return sugarBody;
+    IStrategoTerm sdec = getApplicationSubterm(decl, "SugarDec", 0);
+    return getApplicationSubterm(sdec, "SugarBody", 0);
   }
   
   @Override
@@ -338,8 +328,4 @@ public class JavaScriptLib extends LanguageLib implements Serializable {
   public IStrategoTerm getEditorServices(IStrategoTerm decl) {
     throw new UnsupportedOperationException("SugarJS does currently not support editor libraries.");
   }
-
-
-  
-  
 }

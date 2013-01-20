@@ -42,7 +42,6 @@ folding
   ToplevelDeclaration
   EditorServiceSection
   SugarDefElem
-  SugarDec
   JavaScriptProgram
   JavaScriptSourceElement    
 
