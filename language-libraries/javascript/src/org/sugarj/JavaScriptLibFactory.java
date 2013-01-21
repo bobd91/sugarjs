@@ -15,4 +15,24 @@ public class JavaScriptLibFactory extends LanguageLibFactory {
     return new JavaScriptLib();
   }
 
+  @Override
+  public String getGeneratedFileExtension() {
+    return "js";
+  }
+
+  @Override
+  public String getSugarFileExtension() {
+    return "sjs";
+  }
+
+  @Override
+  public String getLanguageName() {
+    return "JavaScript";
+  }
+
+  @Override
+  public String getVersion() {
+    return "javascript-0.1";
+  }
+
 }

@@ -1,15 +1,11 @@
 package org.sugarj.javascript;
 
-import java.util.Set;
+import java.util.LinkedList;
 
-import org.strategoxt.HybridInterpreter;
 import org.sugarj.common.path.Path;
-import org.sugarj.common.path.RelativePath;
 import org.sugarj.languagelib.SourceFileContent;
 
 public class JavaScriptSourceFileContent extends SourceFileContent {
-  
-  private static final long serialVersionUID = 1718569642175495936L;
 
   // The program code is collected in sections, usually just one
   // but could be more if sugar is mixed in with the JavaScript
@@ -28,8 +24,8 @@ public class JavaScriptSourceFileContent extends SourceFileContent {
     code.append(program);
   }
 
-  public String getCode(Set<RelativePath> generatedFiles, HybridInterpreter interp, Path outFile) {
-    return code.toString();
+  public SourceFileContent.Generated getCode(Path outFile) {
+    return new SourceFileContent.Generated(code.toString(), new LinkedList<String>());
   }
   
   public int hashCode() {
