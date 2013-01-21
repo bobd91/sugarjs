@@ -7,7 +7,6 @@ import static org.sugarj.common.Log.log;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.Collections;
 import java.util.HashSet;
@@ -26,8 +25,8 @@ import org.sugarj.common.IErrorLogger;
 import org.sugarj.common.Log;
 import org.sugarj.common.path.Path;
 import org.sugarj.common.path.RelativePath;
-import org.sugarj.languagelib.SourceFileContent;
 import org.sugarj.javascript.JavaScriptSourceFileContent;
+import org.sugarj.languagelib.SourceFileContent;
 
 public class JavaScriptLib extends LanguageLib implements Serializable {
 
@@ -52,10 +51,6 @@ public class JavaScriptLib extends LanguageLib implements Serializable {
 //    log.setLoggingLevel(Log.ALWAYS);
 //  }
   
-  public String getVersion() {
-    return "javascript-0.1";
-  }
-
   private File getPrettyPrint() {
     if (prettyPrint == null)
       prettyPrint = ensureFile("org/sugarj/languages/JavaScript.pp");
@@ -64,8 +59,8 @@ public class JavaScriptLib extends LanguageLib implements Serializable {
   }
     
   @Override
-  public List<File> getGrammars() {
-    List<File> grammars = new LinkedList<File>(super.getGrammars());
+  public List<File> getDefaultGrammars() {
+    List<File> grammars = new LinkedList<File>(super.getDefaultGrammars());
     grammars.add(ensureFile("org/sugarj/languages/SugarJS.def"));
     grammars.add(ensureFile("org/sugarj/languages/JavaScript.def"));
     return Collections.unmodifiableList(grammars);
@@ -156,16 +151,6 @@ public class JavaScriptLib extends LanguageLib implements Serializable {
   }
 
   @Override
-  public String getGeneratedFileExtension() {
-    return "js";
-  }
-
-  @Override
-  public String getSugarFileExtension() {
-    return "sjs";
-  }
-
-  @Override
   public SourceFileContent getSource() {
     return jsSource;
   }
@@ -195,15 +180,14 @@ public class JavaScriptLib extends LanguageLib implements Serializable {
     return pptable;
   }
   
-  @Override
-  public String prettyPrint(IStrategoTerm term) throws IOException {
+  private String prettyPrint(IStrategoTerm term) throws IOException {
     IStrategoTerm ppTable = initializePrettyPrinter(interp.getCompiledContext());
     return ATermCommands.prettyPrint(ppTable, term, interp);
   }
 
   @Override
   public void setupSourceFile(RelativePath sourceFile, Environment environment) {
-    jsOutFile = environment.createBinPath(FileCommands.dropExtension(sourceFile.getRelativePath()) + "." + getGeneratedFileExtension());
+    jsOutFile = environment.createBinPath(FileCommands.dropExtension(sourceFile.getRelativePath()) + "." + getFactoryForLanguage().getGeneratedFileExtension());
     jsSource = new JavaScriptSourceFileContent(); 
     relNamespaceName = FileCommands.dropFilename(sourceFile.getRelativePath());
     decName = getRelativeModulePath(
@@ -237,13 +221,13 @@ public class JavaScriptLib extends LanguageLib implements Serializable {
   }
 
   @Override
-  protected void compile(List<Path> sourceFiles, Path bin, List<Path> path,
+  public void compile(List<Path> sourceFiles, Path bin, List<Path> path,
       boolean generateFiles) {
     // No compilation for JavaScript
   }
   
   @Override
-  public String getImportedModulePath(IStrategoTerm toplevelDecl) throws IOException {
+  public String getImportedModulePath(IStrategoTerm toplevelDecl) {
     String modulePath = extractModulePath(toplevelDecl);
     return getRelativeModulePath(modulePath);    
   }
@@ -259,7 +243,7 @@ public class JavaScriptLib extends LanguageLib implements Serializable {
     return declaredPath;
   }
 
-  private String extractModulePath(IStrategoTerm modDecl) throws IOException {
+  private String extractModulePath(IStrategoTerm modDecl) {
     // can't pretty print as 'import ...' is not part of JavaScript
     return stripQuotes(modDecl.getSubterm(0).toString());
     
@@ -294,7 +278,7 @@ public class JavaScriptLib extends LanguageLib implements Serializable {
   }
   
   @Override
-  public void addImportModule(IStrategoTerm toplevelDecl, boolean checked) {
+  public void addImportedModule(IStrategoTerm toplevelDecl, boolean checked) {
     // All imports are pure sugar so no need to add to source file  
   }
 
@@ -309,11 +293,6 @@ public class JavaScriptLib extends LanguageLib implements Serializable {
     return getApplicationSubterm(sdec, "SugarBody", 0);
   }
   
-  @Override
-  public String getLanguageName() {
-    return "JavaScript";
-  }
-
   @Override
   public boolean isModuleResolvable(String relModulePath) {
       return false;
