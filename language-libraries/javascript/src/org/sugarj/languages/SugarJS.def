@@ -22,10 +22,10 @@ exports
     SugarDec          -> ToplevelDeclaration
 
   context-free start-symbols
-    SugarCompilationUnit
+    CompilationUnit
 
   context-free syntax
-    SugarOrJavaScript  -> SugarCompilationUnit {cons("CompilationUnit")}
+    SugarOrJavaScript  -> CompilationUnit {cons("CompilationUnit")}
 
     SugarImportDec* JavaScriptProgram        -> SugarOrJavaScript {cons("JavaScript")}
     SugarModuleDec SugarImportDec* SugarBody -> SugarOrJavaScript {cons("SugarJS")}
