@@ -2,10 +2,6 @@ definition
 
 %% ECMA-262 ECMAScript 5.1
 %%  Missing full Unicode support
-
-%% Known bugs:
-%% "{} [0]" and "function x() {} [0]" should both parse as two statements
-%%    but they produce ambiguous results 
     
 %% Layout
 module javascript-51/Layout
@@ -545,12 +541,10 @@ module javascript-51/Statements
       ";" -> Statement {cons("Empty")}   
       
       %% 12.4 Expression Statement
-      %% Reject expressions starting with { or 'function'
-      %% Though this doesn't seem to work in all cases
-      %% See bug at top of file
-      Expression -> ExpressionStatement
-      "{" ~[]* -> ExpressionStatement {reject}
-      "function" ~[]* -> ExpressionStatement {reject}
+      %% Have to reject expressions starting with { or 'function'
+      Expression          -> ExpressionStatement
+      "{" ~[]+            -> ExpressionStatement {reject}
+      "function" ~[]+     -> ExpressionStatement {reject}
       ExpressionStatement -> AutoSemiStatement {cons("Expression")}
       
       %% 12.5 if Statement
