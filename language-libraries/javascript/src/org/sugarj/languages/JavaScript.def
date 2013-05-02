@@ -168,16 +168,15 @@ module javascript-51/Literals
       HexIntegerLiteral -/- [0-9a-fA-F]
       
     sorts
-      DoubleQuotedString SingleQuotedString DoubleStringChar SingleStringChar EscapeSequence Zero
-        
-    context-free syntax
-      DoubleQuotedString  -> StringLiteral {cons("DoubleQuotedString")}
-      SingleQuotedString  -> StringLiteral {cons("SingleQuotedString")}
-        
+      DoubleStringChar SingleStringChar EscapeSequence Zero
+    
+    %% Odd Stratego behaviour means we MUST store our double quoted strings without quotes
+    %% http://yellowgrass.org/issue/Spoofax/623     
+    syntax
+    	[\"] <DoubleStringChar-LEX>* [\"] -> <StringLiteral-CF> {ast("DoubleQuotedString(<2>)")}
+    	[\'] <SingleStringChar-LEX>* [\'] -> <StringLiteral-CF> {ast("SingleQuotedString(<2>)")}
+    	    
     lexical syntax
-      [\"] DoubleStringChar* [\"] -> DoubleQuotedString
-      [\'] SingleStringChar* [\'] -> SingleQuotedString
-
       ~[\"\\\r\n]                 -> DoubleStringChar
       [\\] EscapeSequence         -> DoubleStringChar
       [\\] LineTerminatorSequence -> DoubleStringChar
