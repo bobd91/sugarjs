@@ -34,7 +34,7 @@ exports
     "import" SugarModule       -> SugarImportDec {cons("SugarImportDec")}  
     "sugar" SugarBody          -> SugarDec {cons("SugarDec")}
     
-    "{" SugarDefElem* "}"      -> SugarBody {cons("SugarBody")}
+    "{" ExtensionElem* "}"      -> SugarBody {cons("SugarBody")}
     
     lexical syntax
       {SugarId "/"}+        -> SugarModule
